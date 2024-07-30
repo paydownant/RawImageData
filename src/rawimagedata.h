@@ -23,8 +23,10 @@ private:
   int parse_raw_image_ifd(uint32_t raw_image_file_base);
 
   void process_tag(uint32_t raw_image_file_base, int ifd);
+  uint64_t get_tag_data_offset(uint32_t ifd_base, uint32_t tag_type, uint32_t tag_count);
   void get_tag_header(uint32_t raw_image_file_base, uint32_t *tag_id, uint32_t *tag_type, uint32_t *tag_count, uint32_t *tag_offset);
   uint32_t get_tag_value_int(uint32_t tag_type);
+  void get_time_stamp();
 
 public:
   /* Public Variables */
@@ -44,13 +46,18 @@ private:
     double file_size;       // File size
     char make[64];
     char model[64];
+    char software[64];
+    time_t time_stamp;
+    int time_zone;
+    char artist[64];
   } raw_image_file;
 
   struct raw_image_ifd_t {
     int n_tag_entries;
     int width, height, bps, compression, pinterpret, orientation;
-    int strip_offset;
-    int tile_width, tile_length, samplepx, bytecounts;
+    int x_res, y_res, planar_config;
+    int strip_offset, sample_pixel, strip_byte_counts, rows_per_strip;
+    int tile_width, tile_length;
     float shutter;
   } raw_image_ifd[8];
 

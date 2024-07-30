@@ -8,14 +8,18 @@ RawImageData :: RawImageData(const string_t& file_path) : file_path(file_path), 
   }
 
   raw_image_file.base = 0;
-  raw_image_file.bitorder = 0x4949; // default: little endian
+  raw_image_file.bitorder = 0x4949; // default = little endian
   raw_image_file.version = 0;
   raw_image_file.first_offset = 0;
   raw_image_file.raw_ifd_count = 0;
   raw_image_file.file_size = 0;
   raw_image_file.make[0] = 0;
   raw_image_file.model[0] = 0;
-  
+  raw_image_file.software[0] = 0;
+  raw_image_file.time_stamp = 0;
+  raw_image_file.time_zone = 0; // default = UTC
+  raw_image_file.artist[0] = 0;
+
   raw_identify();
 
   if (parse_raw_image(raw_image_file.base)) {
@@ -52,10 +56,11 @@ int RawImageData :: raw_identify() {
 int RawImageData :: parse_raw_image(uint32_t ifd_base) {
   // reset ifd count
   raw_image_file.raw_ifd_count = 0; // fails since it shouldn't be 0 unless its the first call (in case of recursion)
+  memset(raw_image_ifd, 0, sizeof(raw_image_ifd));
+  
   uint32_t ifd_offset;
 
   while ((ifd_offset = parse_raw_image_ifd(ifd_base))) {
-    printf("next ifd offset: %d\n", ifd_offset);
     file.seekg(ifd_offset, std::ios::beg);
   }
 
@@ -82,14 +87,18 @@ int RawImageData :: parse_raw_image_ifd(uint32_t ifd_base) {
   next_ifd_offset = read_4_bytes(file, raw_image_file.bitorder);
   file.seekg(curr_ifd_offset, std::ios::beg);
 
+  printf("next ifd offset: %d\n", curr_ifd_offset);
   return next_ifd_offset;
 }
 
 void RawImageData :: process_tag(uint32_t ifd_base, int ifd) {
   uint32_t tag_id, tag_type, tag_count, tag_offset;
+  uint64_t tag_data_offset;
   get_tag_header(ifd_base, &tag_id, &tag_type, &tag_count, &tag_offset);
   printf("tag: %d type: %d count: %d offset: %d\n", tag_id, tag_type, tag_count, tag_offset);
-
+  tag_data_offset = get_tag_data_offset(ifd_base, tag_type, tag_count);
+  
+  file.seekg(tag_data_offset, std::ios::beg); // Jump to data offset
   switch(tag_id) {
     case 254: case 0:   // NewSubfileType
       break;
@@ -123,19 +132,52 @@ void RawImageData :: process_tag(uint32_t ifd_base, int ifd) {
       raw_image_ifd[ifd].strip_offset = get_tag_value_int(tag_type);
       file.seekg(raw_image_ifd[ifd].strip_offset, std::ios::beg);
       break;
+    case 274: case 20:  // Orientation
+      raw_image_ifd[ifd].orientation = get_tag_value_int(tag_type);
+      break;
+    case 277: case 23:  // SamplesPerPixel
+      raw_image_ifd[ifd].sample_pixel = get_tag_value_int(tag_type);
+      break;
+    case 278: case 24:  // RowsPerStrip
+      raw_image_ifd[ifd].rows_per_strip = get_tag_value_int(tag_type);
+      break;
+    case 279: case 25:  // StripByteCounts
+      raw_image_ifd[ifd].strip_byte_counts = get_tag_value_int(tag_type);
+      break;
+    case 282: case 28:  // XResolution
+      raw_image_ifd[ifd].x_res = get_tag_value_int(tag_type);
+      break;
+    case 283: case 29:  // YResolution
+      raw_image_ifd[ifd].y_res = get_tag_value_int(tag_type);
+      break;
+    case 284: case 30:  // PlanarConfiguration
+      raw_image_ifd[ifd].planar_config = get_tag_value_int(tag_type);
+      break;
+    case 296: case 42:  // ResolutionUnit
+      break;
+    case 305: case 51:  // Software
+      file.read(raw_image_file.software, 64);
+      break;
+    case 306: case 52:  // DateTime
+      get_time_stamp();
+      break;
+    case 315: case 61:  // Artist
+      file.read(raw_image_file.artist, 64);
+      break;
+    case 322: case 68:  // TileWidth
+      raw_image_ifd[ifd].tile_width = get_tag_value_int(tag_type); 
+      break;
+    case 323: case 69:  // TileLength
+      raw_image_ifd[ifd].tile_length = get_tag_value_int(tag_type);
+      break;
 
   }
   file.seekg(tag_offset, std::ios::beg);
 }
 
-void RawImageData :: get_tag_header(uint32_t ifd_base, uint32_t *tag_id, uint32_t *tag_type, uint32_t *tag_count, uint32_t *tag_offset) {
-  *tag_id = read_2_bytes(file, raw_image_file.bitorder);
-  *tag_type = read_2_bytes(file, raw_image_file.bitorder);
-  *tag_count = read_4_bytes(file, raw_image_file.bitorder);
-  *tag_offset = static_cast<int>(file.tellg()) + 4;
-
+uint64_t RawImageData :: get_tag_data_offset(uint32_t ifd_base, uint32_t tag_type, uint32_t tag_count) {
   uint32_t type_byte = 1;
-  switch (*tag_type) {
+  switch (tag_type) {
     case 0: type_byte = static_cast<uint32_t>(Raw_Tag_Type_Bytes::BYTE);      break;
     case 1: type_byte = static_cast<uint32_t>(Raw_Tag_Type_Bytes::ASCII);     break;
     case 2: type_byte = static_cast<uint32_t>(Raw_Tag_Type_Bytes::SHORT);     break;
@@ -150,13 +192,19 @@ void RawImageData :: get_tag_header(uint32_t ifd_base, uint32_t *tag_id, uint32_
     case 11: type_byte = static_cast<uint32_t>(Raw_Tag_Type_Bytes::DOUBLE);   break;
     case 12: type_byte = static_cast<uint32_t>(Raw_Tag_Type_Bytes::IFD);      break;
     case 13: type_byte = static_cast<uint32_t>(Raw_Tag_Type_Bytes::LONG8);    break;
-
     default: type_byte = 1; break;
   }
-
-  if (type_byte * (*tag_count) > 4) {
-    file.seekg(read_4_bytes(file, raw_image_file.bitorder) + ifd_base, std::ios::beg);
+  if (type_byte * tag_count > 4) {
+    return read_4_bytes(file, raw_image_file.bitorder) + ifd_base;
   }
+  return file.tellg();
+}
+
+void RawImageData :: get_tag_header(uint32_t ifd_base, uint32_t *tag_id, uint32_t *tag_type, uint32_t *tag_count, uint32_t *tag_offset) {
+  *tag_id = read_2_bytes(file, raw_image_file.bitorder);
+  *tag_type = read_2_bytes(file, raw_image_file.bitorder);
+  *tag_count = read_4_bytes(file, raw_image_file.bitorder);
+  *tag_offset = static_cast<int>(file.tellg()) + 4;
 }
 
 uint32_t RawImageData :: get_tag_value_int(uint32_t tag_type) {
@@ -166,4 +214,25 @@ uint32_t RawImageData :: get_tag_value_int(uint32_t tag_type) {
   } else {
     return read_4_bytes(file, raw_image_file.bitorder);
   }
+}
+
+void RawImageData :: get_time_stamp() {
+  // Proper date time format: " YYYY:MM:DD HH:MM:SS"
+  char time_str[20];
+  file.read(time_str, 20);
+
+  struct tm t;
+  memset(&t, 0, sizeof(t));
+  if (sscanf(time_str, "%d:%d:%d %d:%d:%d",
+  &t.tm_year, &t.tm_mon, &t.tm_mday, 
+  &t.tm_hour, &t.tm_min, &t.tm_sec) != 6) return;
+
+  t.tm_year -= 1900;
+  t.tm_mon -= 1;
+  t.tm_isdst = -1;
+
+  if (mktime(&t) > 0) {
+    raw_image_file.time_stamp = mktime(&t);
+  }
+
 }
