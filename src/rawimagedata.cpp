@@ -19,6 +19,7 @@ RawImageData :: RawImageData(const string_t& file_path) : file_path(file_path), 
   raw_image_file.time_stamp = 0;
   raw_image_file.time_zone = 0; // default = UTC
   raw_image_file.artist[0] = 0;
+  raw_image_file.copyright[0] = 0;
 
   raw_identify();
 
@@ -93,7 +94,7 @@ int RawImageData :: parse_raw_image_ifd(uint32_t ifd_base) {
 
 void RawImageData :: process_tag(uint32_t ifd_base, int ifd) {
   uint32_t tag_id, tag_type, tag_count, tag_offset;
-  uint64_t tag_data_offset;
+  uint64_t tag_data_offset, sub_ifd_offset;
   get_tag_header(ifd_base, &tag_id, &tag_type, &tag_count, &tag_offset);
   printf("tag: %d type: %d count: %d offset: %d\n", tag_id, tag_type, tag_count, tag_offset);
   tag_data_offset = get_tag_data_offset(ifd_base, tag_type, tag_count);
@@ -129,8 +130,7 @@ void RawImageData :: process_tag(uint32_t ifd_base, int ifd) {
       file.read(raw_image_file.model, 64);
       break;
     case 273: case 19:  // StripOffsets
-      raw_image_ifd[ifd].strip_offset = get_tag_value_int(tag_type);
-      file.seekg(raw_image_ifd[ifd].strip_offset, std::ios::beg);
+      raw_image_ifd[ifd].strip_offset = get_tag_value_int(tag_type) + ifd_base;
       break;
     case 274: case 20:  // Orientation
       raw_image_ifd[ifd].orientation = get_tag_value_int(tag_type);
@@ -164,13 +164,48 @@ void RawImageData :: process_tag(uint32_t ifd_base, int ifd) {
     case 315: case 61:  // Artist
       file.read(raw_image_file.artist, 64);
       break;
+    case 320: case 66:  // ColorMap
+      break;
     case 322: case 68:  // TileWidth
       raw_image_ifd[ifd].tile_width = get_tag_value_int(tag_type); 
       break;
     case 323: case 69:  // TileLength
       raw_image_ifd[ifd].tile_length = get_tag_value_int(tag_type);
       break;
-
+    case 324: case 70:  // TileOffsets
+      break;
+    case 325: case 71:  // TileByteCounts
+      break;
+    case 330: case 76:  // SubIFDs
+      sub_ifd_offset = get_tag_value_int(tag_type);
+      printf("sub ifd offset: %d\n", sub_ifd_offset);
+      if (sub_ifd_offset) {
+        file.seekg(sub_ifd_offset + ifd_base);
+        while (sub_ifd_offset = parse_raw_image_ifd(ifd_base)) {
+          file.seekg(sub_ifd_offset, std::ios::beg);
+        }
+      }
+      break;
+    case 513:           // JPEGInterchangeFormat
+      raw_image_ifd[ifd].jpeg_if_offset = get_tag_value_int(tag_type);
+      break;
+    case 514:           // JPEGInterchangeFormatLength
+      raw_image_ifd[ifd].jpeg_if_length = get_tag_value_int(tag_type);
+      break;
+    case 529:           // YCbCrCoefficients
+      break;
+    case 530:           // YCbCrSubSampling
+      break;
+    case 531:           // YCbCrPositioning
+      break;
+    case 532:           // ReferenceBlackWhite
+      break;
+    case 33432:         // Copyright
+      file.read(raw_image_file.copyright, 64);
+      printf("copyright: %s\n", raw_image_file.copyright);
+      break;
+    case 34665:         // Exif IFD
+      break;
   }
   file.seekg(tag_offset, std::ios::beg);
 }

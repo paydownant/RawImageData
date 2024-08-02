@@ -50,6 +50,7 @@ private:
     time_t time_stamp;
     int time_zone;
     char artist[64];
+    char copyright[64];
   } raw_image_file;
 
   struct raw_image_ifd_t {
@@ -57,6 +58,7 @@ private:
     int width, height, bps, compression, pinterpret, orientation;
     int x_res, y_res, planar_config;
     int strip_offset, sample_pixel, strip_byte_counts, rows_per_strip;
+    int jpeg_if_offset, jpeg_if_length;
     int tile_width, tile_length;
     float shutter;
   } raw_image_ifd[8];
