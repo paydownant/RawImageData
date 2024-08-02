@@ -4,6 +4,8 @@
 #include <vector>
 #include <cstdint>
 #include <cstring>
+#include <cmath>
+#include <arpa/inet.h>
 
 using file_stream_t = std::ifstream;
 using string_t = std::string;
@@ -17,15 +19,18 @@ public:
 
 private:
   /* Private Functions */
-  int raw_identify();
+  bool raw_identify();
 
-  int parse_raw_image(uint32_t raw_image_file_base);
-  int parse_raw_image_ifd(uint32_t raw_image_file_base);
+  bool parse_raw_image(u_int32_t raw_image_file_base);
+  u_int64_t parse_raw_image_ifd(u_int32_t raw_image_file_base);
+  void process_tag(u_int32_t raw_image_file_base, int ifd);
+  void get_exif_data(u_int32_t ifd_base);
 
-  void process_tag(uint32_t raw_image_file_base, int ifd);
-  uint64_t get_tag_data_offset(uint32_t ifd_base, uint32_t tag_type, uint32_t tag_count);
-  void get_tag_header(uint32_t raw_image_file_base, uint32_t *tag_id, uint32_t *tag_type, uint32_t *tag_count, uint32_t *tag_offset);
-  uint32_t get_tag_value_int(uint32_t tag_type);
+  u_int64_t get_tag_data_offset(u_int32_t ifd_base, u_int32_t tag_type, u_int32_t tag_count);
+  void get_tag_header(u_int32_t raw_image_file_base, u_int32_t *tag_id, u_int32_t *tag_type, u_int32_t *tag_count, u_int32_t *tag_offset);
+  
+  double get_tag_value(u_int32_t tag_type);
+
   void get_time_stamp();
 
 public:
@@ -38,11 +43,11 @@ private:
   file_stream_t file;
 
   struct raw_image_file_t {
-    uint32_t base;
-    uint16_t bitorder;      // Byte order indicator ("II" 0x4949 for little-endian, "MM" 0x4D4D for big-endian)
-    uint16_t version;       // Version
-    uint32_t first_offset;  // Offset to the first IFD
-    uint8_t raw_ifd_count;  // Number of IFD
+    u_int32_t base;
+    u_int16_t bitorder;      // Byte order indicator ("II" 0x4949 for little-endian, "MM" 0x4D4D for big-endian)
+    u_int16_t version;       // Version
+    u_int32_t first_offset;  // Offset to the first IFD
+    u_int8_t raw_ifd_count;  // Number of IFD
     double file_size;       // File size
     char make[64];
     char model[64];
@@ -51,33 +56,51 @@ private:
     int time_zone;
     char artist[64];
     char copyright[64];
+
+    u_int64_t exif_offset;
   } raw_image_file;
+
+  struct exif_t {
+    char camera_make[64];
+    char camera_model[64];
+    time_t date_time;
+
+    double focal_length;
+    double exposure;
+    double f_number;
+    int iso_sensitivity;
+
+    char lens_model[64];
+
+    char gps_latitude_reference;
+    double gps_latitude;
+    char gps_longitude_reference;
+    double gps_longitude;
+  } exif;
 
   struct raw_image_ifd_t {
     int n_tag_entries;
     int width, height, bps, compression, pinterpret, orientation;
-    int x_res, y_res, planar_config;
+    double x_res, y_res;
+    int planar_config;
     int strip_offset, sample_pixel, strip_byte_counts, rows_per_strip;
     int jpeg_if_offset, jpeg_if_length;
     int tile_width, tile_length;
-    float shutter;
   } raw_image_ifd[8];
 
   enum class Raw_Tag_Type_Bytes {
     BYTE = 1,
     ASCII = 1,
-    SHORT = 1,
-    LONG = 2,
-    RATIONAL = 4,
-    SBYTE = 8,
+    SHORT = 2,
+    LONG = 4,
+    RATIONAL = 8,
+    SBYTE = 1,
     UNDEFINED = 1,
-    SSHORT = 1,
-    SLONG = 2,
-    SRATIONAL = 4,
-    FLOAT = 8,
-    DOUBLE = 4,
-    IFD = 8,
-    LONG8 = 4
+    SSHORT = 2,
+    SLONG = 4,
+    SRATIONAL = 8,
+    FLOAT = 4,
+    DOUBLE = 8
   };
 
   // Constants
