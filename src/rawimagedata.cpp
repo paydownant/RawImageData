@@ -64,23 +64,23 @@ bool RawImageData :: raw_identify() {
   return true;
 }
 
-bool RawImageData :: parse_raw_image(u_int32_t ifd_base) {
+bool RawImageData :: parse_raw_image(off_t raw_image_file_base) {
   // reset ifd count
   raw_image_file.raw_ifd_count = 0; // fails since it shouldn't be 0 unless its the first call (in case of recursion)
   memset(raw_image_ifd, 0, sizeof(raw_image_ifd));
   
-  u_int32_t ifd_offset;
+  off_t ifd_offset;
 
-  while ((ifd_offset = parse_raw_image_ifd(ifd_base))) {
+  while ((ifd_offset = parse_raw_image_ifd(raw_image_file_base))) {
     file.seekg(ifd_offset, std::ios::beg);
   }
 
   return true;
 }
 
-u_int64_t RawImageData :: parse_raw_image_ifd(u_int32_t ifd_base) {
+u_int64_t RawImageData :: parse_raw_image_ifd(off_t raw_image_file_base) {
   u_int8_t ifd;
-  u_int32_t curr_ifd_offset, next_ifd_offset;
+  off_t curr_ifd_offset, next_ifd_offset;
   if (raw_image_file.raw_ifd_count >= sizeof(raw_image_ifd) / sizeof(raw_image_ifd[0])) {
     fprintf(stderr, "Raw File IFD Count Exceeded\n");
     return 0;
@@ -90,24 +90,24 @@ u_int64_t RawImageData :: parse_raw_image_ifd(u_int32_t ifd_base) {
 
   raw_image_ifd[ifd].n_tag_entries = read_2_bytes_unsigned(file, raw_image_file.bitorder);
 
-  for (uint16_t tag = 0; tag < raw_image_ifd[ifd].n_tag_entries; ++tag) {
-    process_tag(ifd_base, ifd);
+  for (u_int16_t tag = 0; tag < raw_image_ifd[ifd].n_tag_entries; ++tag) {
+    process_tag(raw_image_file_base, ifd);
   }
 
   curr_ifd_offset = file.tellg();
-  next_ifd_offset = read_4_bytes_unsigned(file, raw_image_file.bitorder);
+  next_ifd_offset = read_4_bytes_unsigned(file, raw_image_file.bitorder) + raw_image_file_base;
   file.seekg(curr_ifd_offset, std::ios::beg);
 
   printf("next ifd offset: %d\n", curr_ifd_offset);
   return next_ifd_offset;
 }
 
-void RawImageData :: process_tag(u_int32_t ifd_base, int ifd) {
-  u_int32_t tag_id, tag_type, tag_count, tag_offset;
-  u_int64_t tag_data_offset, sub_ifd_offset;
-  get_tag_header(ifd_base, &tag_id, &tag_type, &tag_count, &tag_offset);
+void RawImageData :: process_tag(off_t raw_image_file_base, u_int64_t ifd) {
+  u_int32_t tag_id, tag_type, tag_count;
+  off_t tag_data_offset, tag_offset, sub_ifd_offset;
+  get_tag_header(raw_image_file_base, &tag_id, &tag_type, &tag_count, &tag_offset);
   printf("tag: %d type: %d count: %d offset: %d\n", tag_id, tag_type, tag_count, tag_offset);
-  tag_data_offset = get_tag_data_offset(ifd_base, tag_type, tag_count);
+  tag_data_offset = get_tag_data_offset(raw_image_file_base, tag_type, tag_count);
   
   file.seekg(tag_data_offset, std::ios::beg); // Jump to data offset
   switch(tag_id) {
@@ -141,7 +141,7 @@ void RawImageData :: process_tag(u_int32_t ifd_base, int ifd) {
       file.read(raw_image_file.model, 64);
       break;
     case 273: case 19:  // StripOffsets
-      raw_image_ifd[ifd].strip_offset = get_tag_value(tag_type) + ifd_base;
+      raw_image_ifd[ifd].strip_offset = get_tag_value(tag_type) + raw_image_file_base;
       break;
     case 274: case 20:  // Orientation
       raw_image_ifd[ifd].orientation = get_tag_value(tag_type);
@@ -185,15 +185,16 @@ void RawImageData :: process_tag(u_int32_t ifd_base, int ifd) {
       raw_image_ifd[ifd].tile_length = get_tag_value(tag_type);
       break;
     case 324: case 70:  // TileOffsets
+      raw_image_ifd[ifd].tile_offset = get_tag_value(tag_type);
       break;
     case 325: case 71:  // TileByteCounts
       break;
     case 330: case 76:  // SubIFDs
-      sub_ifd_offset = get_tag_value(tag_type);
+      sub_ifd_offset = get_tag_value(tag_type) + raw_image_file_base;
       printf("sub ifd offset: %d\n", sub_ifd_offset);
       if (sub_ifd_offset) {
-        file.seekg(sub_ifd_offset + ifd_base);
-        while (sub_ifd_offset = parse_raw_image_ifd(ifd_base)) {
+        file.seekg(sub_ifd_offset, std::ios::beg);
+        while (sub_ifd_offset = parse_raw_image_ifd(raw_image_file_base)) {
           file.seekg(sub_ifd_offset, std::ios::beg);
         }
       }
@@ -216,11 +217,18 @@ void RawImageData :: process_tag(u_int32_t ifd_base, int ifd) {
       file.read(raw_image_file.copyright, 64);
       break;
     case 34665:         // Exif IFD
-      raw_image_file.exif_offset = get_tag_value(tag_type);
-      get_exif_data(ifd_base);
+      raw_image_file.exif_offset = get_tag_value(tag_type) + raw_image_file_base;
+      get_exif_data(raw_image_file_base);
+      break;
+    case 34675:         // InterColorProfile
+      exif.icc_profile_offset = file.tellg();
+      exif.icc_profile_count = tag_count;
       break;
     case 34853:         // GPSInfo / GPS IFD
+      exif.gps_offset = get_tag_value(tag_type) + raw_image_file_base;
+      get_gps_data(raw_image_file_base);
       break;
+    
     
     default:
       break;
@@ -229,16 +237,15 @@ void RawImageData :: process_tag(u_int32_t ifd_base, int ifd) {
 }
 
 
-void RawImageData :: get_exif_data(u_int32_t ifd_base) {
-  int entries;
-  u_int32_t tag_id, tag_type, tag_count, tag_offset;
-  u_int64_t tag_data_offset;
+void RawImageData :: get_exif_data(off_t raw_image_file_base) {
+  u_int32_t tag_entries, tag_id, tag_type, tag_count;
+  off_t tag_data_offset, tag_offset;
   
   file.seekg(raw_image_file.exif_offset, std::ios::beg);
-  entries = read_2_bytes_unsigned(file, raw_image_file.bitorder);
-  for (int i = 0; i < entries; ++i) {
-    get_tag_header(ifd_base, &tag_id, &tag_type, &tag_count, &tag_offset);
-    tag_data_offset = get_tag_data_offset(ifd_base, tag_type, tag_count);
+  tag_entries = read_2_bytes_unsigned(file, raw_image_file.bitorder);
+  for (int i = 0; i < tag_entries; ++i) {
+    get_tag_header(raw_image_file_base, &tag_id, &tag_type, &tag_count, &tag_offset);
+    tag_data_offset = get_tag_data_offset(raw_image_file_base, tag_type, tag_count);
     file.seekg(tag_data_offset, std::ios::beg);
 
     switch (tag_id) {
@@ -284,7 +291,38 @@ void RawImageData :: get_exif_data(u_int32_t ifd_base) {
   }
 }
 
-u_int64_t RawImageData :: get_tag_data_offset(u_int32_t ifd_base, u_int32_t tag_type, u_int32_t tag_count) {
+void RawImageData :: get_gps_data(off_t raw_image_file_base) {
+  u_int32_t tag_entries, tag_id, tag_type, tag_count;
+  off_t tag_data_offset, tag_offset;
+
+  int data;
+  
+  file.seekg(exif.gps_offset, std::ios::beg);
+  tag_entries = read_2_bytes_unsigned(file, raw_image_file.bitorder);
+  for (int i = 0; i < tag_entries; ++i) {
+    get_tag_header(raw_image_file_base, &tag_id, &tag_type, &tag_count, &tag_offset);
+    tag_data_offset = get_tag_data_offset(raw_image_file_base, tag_type, tag_count);
+    printf("gps tag: %d type: %d count: %d offset: %d\n", tag_id, tag_type, tag_count, tag_offset);
+    file.seekg(tag_data_offset, std::ios::beg);
+
+    switch (tag_id) {
+      case 0:
+        for (int i = 0; i < 4; i++) {
+          data = get_tag_value(tag_type);
+          printf("gps data: %d\n", data);
+        }
+        break;
+    
+      default:
+        break;
+    }
+
+    file.seekg(tag_offset, std::ios::beg);
+  }
+
+}
+
+off_t RawImageData :: get_tag_data_offset(off_t raw_image_file_base, u_int32_t tag_type, u_int32_t tag_count) {
   u_int32_t type_byte = 1;
   switch (tag_type) {
     case 1: type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::BYTE);        break;
@@ -303,12 +341,12 @@ u_int64_t RawImageData :: get_tag_data_offset(u_int32_t ifd_base, u_int32_t tag_
     default: type_byte = 1; break;
   }
   if (type_byte * tag_count > 4) {
-    return read_4_bytes_unsigned(file, raw_image_file.bitorder) + ifd_base;
+    return read_4_bytes_unsigned(file, raw_image_file.bitorder) + raw_image_file_base;
   }
   return file.tellg();
 }
 
-void RawImageData :: get_tag_header(u_int32_t ifd_base, u_int32_t *tag_id, u_int32_t *tag_type, u_int32_t *tag_count, u_int32_t *tag_offset) {
+void RawImageData :: get_tag_header(off_t raw_image_file_base, u_int32_t *tag_id, u_int32_t *tag_type, u_int32_t *tag_count, off_t *tag_offset) {
   *tag_id = read_2_bytes_unsigned(file, raw_image_file.bitorder);
   *tag_type = read_2_bytes_unsigned(file, raw_image_file.bitorder);
   *tag_count = read_4_bytes_unsigned(file, raw_image_file.bitorder);
