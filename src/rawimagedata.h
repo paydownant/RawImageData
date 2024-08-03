@@ -12,31 +12,10 @@ using string_t = std::string;
 using runtime_error_t = std::runtime_error;
 
 class RawImageData {
-
-public:
-  /* Public Functions */
-  RawImageData(const string_t& file_path);
-
-private:
-  /* Private Functions */
-  bool raw_identify();
-
-  bool parse_raw_image(off_t raw_image_file_base);
-  u_int64_t parse_raw_image_ifd(off_t raw_image_file_base);
-  void process_tag(off_t raw_image_file_base, u_int64_t ifd);
-  void get_exif_data(off_t raw_image_file_base);
-  void get_gps_data(off_t raw_image_file_base);
-
-  off_t get_tag_data_offset(off_t raw_image_file_base, u_int32_t tag_type, u_int32_t tag_count);
-  void get_tag_header(off_t raw_image_file_base, u_int32_t *tag_id, u_int32_t *tag_type, u_int32_t *tag_count, off_t *tag_offset);
   
-  double get_tag_value(u_int32_t tag_type);
-
-  void get_time_stamp();
 
 public:
   /* Public Variables */
-
 
 private:
   /* Private Variables */
@@ -45,12 +24,12 @@ private:
 
   struct raw_image_file_t {
     u_int32_t base;
-    u_int16_t bitorder;      // Byte order indicator ("II" 0x4949 for little-endian, "MM" 0x4D4D for big-endian)
-    u_int16_t version;       // Version
+    u_int16_t bitorder;       // Byte order indicator ("II" 0x4949 for little-endian, "MM" 0x4D4D for big-endian)
+    u_int16_t version;        // Version
     
-    off_t first_offset;  // Offset to the first IFD
-    u_int8_t raw_ifd_count;  // Number of IFD
-    double file_size;       // File size
+    off_t first_offset;       // Offset to the first IFD
+    u_int8_t raw_ifd_count;   // Number of IFD
+    double file_size;         // File size
     char make[64];
     char model[64];
     char software[64];
@@ -94,6 +73,11 @@ private:
     int tile_width, tile_length;
   } raw_image_ifd[8];
 
+  struct jpeg_header_t {
+    int algo, bits, high, wide, clrs, sraw, psv, restart, vpred[6];
+    ushort quant[64], idct[64], * huff[20], * free[20], * row;
+  };
+
   enum class Raw_Tag_Type_Bytes {
     BYTE = 1,
     ASCII = 1,
@@ -111,5 +95,27 @@ private:
 
   // Constants
   //static constexpr unsigned raw_tag_type_bytes[14] = {1,1,1,2,4,8,1,1,2,4,8,4,8,4};
+
+public:
+  /* Public Functions */
+  RawImageData(const string_t& file_path);
+
+private:
+  /* Private Functions */
+  bool raw_identify();
+
+  bool parse_raw_image(off_t raw_image_file_base);
+  u_int64_t parse_raw_image_ifd(off_t raw_image_file_base);
+  void parse_raw_image_tag(off_t raw_image_file_base, u_int64_t ifd);
+  bool parse_exif_data(off_t raw_image_file_base);
+  bool parse_strip_data(off_t raw_image_file_base, u_int64_t ifd);
+  bool parse_gps_data(off_t raw_image_file_base);
+  bool parse_time_stamp();
+
+  off_t get_tag_data_offset(off_t raw_image_file_base, u_int32_t tag_type, u_int32_t tag_count);
+  void get_tag_header(off_t raw_image_file_base, u_int32_t *tag_id, u_int32_t *tag_type, u_int32_t *tag_count, off_t *tag_offset);
+  double get_tag_value(u_int32_t tag_type);
+
+  bool get_jpeg_header(jpeg_header_t* jpeg_header, bool info_only);
 
 };
