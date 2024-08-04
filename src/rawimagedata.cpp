@@ -144,6 +144,7 @@ void RawImageData :: parse_raw_image_tag(off_t raw_image_file_base, u_int64_t if
       break;
     case 273: case 19:  // StripOffsets
       raw_image_ifd[ifd].strip_offset = get_tag_value(tag_type) + raw_image_file_base;
+      printf("strip offset: %d\n", raw_image_ifd[ifd].strip_offset);
       parse_strip_data(raw_image_file_base, ifd);
       break;
     case 274: case 20:  // Orientation
@@ -251,7 +252,9 @@ void RawImageData :: parse_raw_image_tag(off_t raw_image_file_base, u_int64_t if
 
 bool RawImageData :: parse_strip_data(off_t raw_image_file_base, u_int64_t ifd) {
   jpeg_header_t jpeg_header;
-  if (!raw_image_ifd[ifd].bps && raw_image_ifd[ifd].strip_offset) {
+  
+  if (!raw_image_ifd[ifd].bps && raw_image_ifd[ifd].strip_offset > 0) {
+    file.seekg(raw_image_ifd[ifd].strip_offset, std::ios::beg);
     if (get_jpeg_header(&jpeg_header, true)) {
 
       parse_raw_image(raw_image_ifd[ifd].strip_offset + 12);
@@ -355,7 +358,7 @@ bool RawImageData :: parse_time_stamp() {
   memset(&t, 0, sizeof(t));
   if (sscanf(time_str, "%d:%d:%d %d:%d:%d",
   &t.tm_year, &t.tm_mon, &t.tm_mday, 
-  &t.tm_hour, &t.tm_min, &t.tm_sec) != 6) return;
+  &t.tm_hour, &t.tm_min, &t.tm_sec) != 6) return false;
 
   t.tm_year -= 1900;
   t.tm_mon -= 1;
@@ -371,18 +374,18 @@ bool RawImageData :: parse_time_stamp() {
 off_t RawImageData :: get_tag_data_offset(off_t raw_image_file_base, u_int32_t tag_type, u_int32_t tag_count) {
   u_int32_t type_byte = 1;
   switch (tag_type) {
-    case 1: type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::BYTE);        break;
-    case 2: type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::ASCII);       break;
-    case 3: type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::SHORT);       break;
-    case 4: type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::LONG);        break;
-    case 5: type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::RATIONAL);    break;
-    case 6: type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::SBYTE);       break;
-    case 7: type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::UNDEFINED);   break;
-    case 8: type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::SSHORT);      break;
-    case 9: type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::SLONG);       break;
-    case 10: type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::SRATIONAL);  break;
-    case 11: type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::FLOAT);      break;
-    case 12: type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::DOUBLE);     break;
+    case 1:   type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::BYTE);     break;
+    case 2:   type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::ASCII);    break;
+    case 3:   type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::SHORT);    break;
+    case 4:   type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::LONG);     break;
+    case 5:   type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::RATIONAL); break;
+    case 6:   type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::SBYTE);    break;
+    case 7:   type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::UNDEFINED);break;
+    case 8:   type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::SSHORT);   break;
+    case 9:   type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::SLONG);    break;
+    case 10:  type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::SRATIONAL);break;
+    case 11:  type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::FLOAT);    break;
+    case 12:  type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::DOUBLE);   break;
     
     default: type_byte = 1; break;
   }
@@ -446,6 +449,16 @@ double RawImageData :: get_tag_value(u_int32_t tag_type) {
 }
 
 bool RawImageData :: get_jpeg_header(jpeg_header_t* jpeg_header, bool info_only) {
+  u_char magic[] = {0xff, 0xff, 0xff};
+  file.read(reinterpret_cast<char*>(&magic), 3);
+
+  if (magic[0] != 0xff || magic[1] != 0xd8 || magic[2] != 0xff) {
+    // magik number does not match FF D8 FF
+    printf("check jpeg: %02X %02X %02X\n", magic[0], magic[1], magic[2]);
+    return false;
+  }
+
+  
   return true;
 }
 
