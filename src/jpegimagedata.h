@@ -13,7 +13,7 @@ public:
   JpegImageData(std::ifstream& file);
   ~JpegImageData();
 
-  bool jpeg_header(std::ifstream& file);
+  bool jpeg_info(std::ifstream& file);
 
 private:
   
@@ -22,9 +22,13 @@ public:
 
 private:
 
-  struct jpeg_header_t {
-    // APP0
-    int length, identifier, ver, dpi, width, height;
+  struct jpeg_info_t {
+    // APP
+    int identifier, ver, dpi;
+    // SOF
+    int precision, width, height, components;
+    // DRI
+    int restart;
 
   };
   
