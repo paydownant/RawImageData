@@ -40,6 +40,10 @@ RawImageData :: RawImageData(const string_t& file_path) : file_path(file_path), 
   
 }
 
+RawImageData :: ~RawImageData() {
+  
+}
+
 bool RawImageData :: raw_identify() {
 
   char raw_image_header[32];
@@ -448,17 +452,68 @@ double RawImageData :: get_tag_value(u_int32_t tag_type) {
   }
 }
 
+/**
+ * https://yasoob.me/posts/understanding-and-writing-jpeg-decoder-in-python/
+ */
 bool RawImageData :: get_jpeg_header(jpeg_header_t* jpeg_header, bool info_only) {
-  u_char magic[] = {0xff, 0xff, 0xff};
-  file.read(reinterpret_cast<char*>(&magic), 3);
+  u_char buffer[2] = {0xFF, 0xFF};
+  memset(jpeg_header, 0, sizeof(*jpeg_header));
 
-  if (magic[0] != 0xff || magic[1] != 0xd8 || magic[2] != 0xff) {
-    // magik number does not match FF D8 FF
-    printf("check jpeg: %02X %02X %02X\n", magic[0], magic[1], magic[2]);
+  if (!file.read(reinterpret_cast<char*>(&buffer), 2)) {
+    return false;
+  }
+  if (memcmp(buffer, MAGIC_JPEG, 2)) {
+    // Magic number does not match FF D8 ...
+    printf("check jpeg: %02X %02X\n", buffer[0], buffer[1]);
     return false;
   }
 
-  
+  int len = 0;
+  while (file.read(reinterpret_cast<char*>(&buffer), 2)) {
+    if (buffer[0] != 0xff) {
+      continue;
+    }
+    switch (buffer[1]) {
+      case 0xC0:  // SOF0
+      case 0xC1:  // SOF1
+        file.read(reinterpret_cast<char*>(&buffer), 2);
+        file.read(reinterpret_cast<char*>(&buffer), 1);
+        jpeg_header->bits = buffer[0];
+        file.read(reinterpret_cast<char*>(&buffer), 2);
+        jpeg_header->height = (buffer[0] << 8 | buffer[1]);
+        file.read(reinterpret_cast<char*>(&buffer), 2);
+        jpeg_header->width = (buffer[0] << 8 | buffer[1]);
+        file.read(reinterpret_cast<char*>(&buffer), 1);
+        jpeg_header->clrs = buffer[0];
+        break;
+      case 0xC4:  // Huffman Table
+        file.read(reinterpret_cast<char*>(&buffer), 2);
+        len = (buffer[0] << 8 | buffer[1]);
+        len -= 2;
+        break;
+    
+      default:
+        // Skip over other markers
+        file.read(reinterpret_cast<char*>(buffer), 2);
+        int length = (buffer[0] << 8) | buffer[1];
+        file.seekg(length - 2, std::ios_base::cur);
+        break;
+    }
+  }
+
+  if (jpeg_header->bits > 16 || jpeg_header == 0) {
+    return false;
+  }
+  if (jpeg_header->clrs > 6 || jpeg_header->clrs == 0) {
+    return false;
+  }
+  if (jpeg_header->height == 0 || !jpeg_header->width == 0) {
+    return false;
+  }
+  if (jpeg_header->huff[0] == 0) {
+    return false;
+  }
+
   return true;
 }
 

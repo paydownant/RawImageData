@@ -12,8 +12,6 @@ using string_t = std::string;
 using runtime_error_t = std::runtime_error;
 
 class RawImageData {
-  
-
 public:
   /* Public Variables */
 
@@ -74,8 +72,8 @@ private:
   } raw_image_ifd[8];
 
   struct jpeg_header_t {
-    int algo, bits, high, wide, clrs, sraw, psv, restart, vpred[6];
-    ushort quant[64], idct[64], * huff[20], * free[20], * row;
+    int algo, bits, height, width, clrs, sraw, psv, restart, vpred[6];
+    ushort quant[64], idct[64], *huff[20], *free[20], *row;
   };
 
   enum class Raw_Tag_Type_Bytes {
@@ -94,11 +92,14 @@ private:
   };
 
   // Constants
+  const u_char MAGIC_JPEG[2] = {0xff, 0xd8};
   //static constexpr unsigned raw_tag_type_bytes[14] = {1,1,1,2,4,8,1,1,2,4,8,4,8,4};
+  
 
 public:
   /* Public Functions */
   RawImageData(const string_t& file_path);
+  ~RawImageData();
 
 private:
   /* Private Functions */
