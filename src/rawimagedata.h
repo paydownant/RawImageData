@@ -7,6 +7,9 @@
 #include <cmath>
 #include <arpa/inet.h>
 
+#include "rawimagedata_utils.h"
+#include "jpegimagedata.h"
+
 using file_stream_t = std::ifstream;
 using string_t = std::string;
 using runtime_error_t = std::runtime_error;

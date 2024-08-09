@@ -1,6 +1,5 @@
 
 #include "rawimagedata.h"
-#include "rawimagedata_utils.h"
 
 RawImageData :: RawImageData(const string_t& file_path) : file_path(file_path), file(file_path, std::ios::binary) {
   if (!file) {
@@ -255,11 +254,11 @@ void RawImageData :: parse_raw_image_tag(off_t raw_image_file_base, u_int64_t if
 }
 
 bool RawImageData :: parse_strip_data(off_t raw_image_file_base, u_int64_t ifd) {
-  jpeg_header_t jpeg_header;
+  jpeg_info_t jpeg_header;
   
   if (!raw_image_ifd[ifd].bps && raw_image_ifd[ifd].strip_offset > 0) {
     file.seekg(raw_image_ifd[ifd].strip_offset, std::ios::beg);
-    if (get_jpeg_header(&jpeg_header, true)) {
+    if (jpeg_info(file, &jpeg_header, false)) {
 
       parse_raw_image(raw_image_ifd[ifd].strip_offset + 12);
     }
