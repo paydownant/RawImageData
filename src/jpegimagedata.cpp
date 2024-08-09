@@ -1,7 +1,7 @@
 
 #include "jpegimagedata.h"
 
-bool jpeg_info(std::ifstream& file, jpeg_info_t* jpeg_info, bool info_only) {
+bool parse_jpeg_info(std::ifstream& file, jpeg_info_t* jpeg_info, bool info_only) {
   memset(jpeg_info, 0, sizeof(*jpeg_info));
 
   u_char buffer[2];  
@@ -114,7 +114,7 @@ void parse_quantisation_table(jpeg_info_t** jpeg_info, const u_char** data, cons
 }
 
 void parse_huff_table(jpeg_info_t** jpeg_info, const u_char** data, const u_int length) {
-  
+
 }
 
 huff_t* get_huff_tree(const u_char **dht_segment) {

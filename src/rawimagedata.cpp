@@ -254,12 +254,11 @@ void RawImageData :: parse_raw_image_tag(off_t raw_image_file_base, u_int64_t if
 }
 
 bool RawImageData :: parse_strip_data(off_t raw_image_file_base, u_int64_t ifd) {
-  jpeg_info_t jpeg_header;
+  jpeg_info_t jpeg_info;
   
   if (!raw_image_ifd[ifd].bps && raw_image_ifd[ifd].strip_offset > 0) {
     file.seekg(raw_image_ifd[ifd].strip_offset, std::ios::beg);
-    if (jpeg_info(file, &jpeg_header, false)) {
-
+    if (parse_jpeg_info(file, &jpeg_info, false)) {
       parse_raw_image(raw_image_ifd[ifd].strip_offset + 12);
     }
     return true;

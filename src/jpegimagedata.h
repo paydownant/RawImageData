@@ -44,7 +44,7 @@ struct jpeg_info_t {
   int restart;
 };
 
-bool jpeg_info(std::ifstream& file, jpeg_info_t* jpeg_info, bool info_only);
+bool parse_jpeg_info(std::ifstream& file, jpeg_info_t* jpeg_info, bool info_only);
 
 void parse_quantisation_table(jpeg_info_t** jpeg_info, const u_char** data, const u_int length);
 void parse_huff_table(jpeg_info_t** jpeg_info, const u_char** data, const u_int length);
