@@ -11,7 +11,6 @@ RawImageData :: RawImageData(const std::string& file_path) : file_path(file_path
     print_data();
     // apply raw frame (tiff)
   }
- 
 }
 
 RawImageData :: ~RawImageData() {
