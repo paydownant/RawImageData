@@ -57,5 +57,6 @@ bool parse_jpeg_info(std::ifstream& file, jpeg_info_t* jpeg_info, bool info_only
 bool parse_sof(jpeg_info_t* jpeg_info, const u_char* data, const u_int marker, const u_int length);
 bool parse_dqt(jpeg_info_t* jpeg_info, const u_char* data, const u_int marker, const u_int length);
 bool parse_dht(jpeg_info_t* jpeg_info, const u_char* data, const u_int marker, const u_int length);
+bool parse_sos(jpeg_info_t* jpeg_info, const u_char* data, const u_int marker, const u_int length);
 bool parse_dri(jpeg_info_t* jpeg_info, const u_char* data, const u_int marker, const u_int length);
 void print_jpeg_info(jpeg_info_t* jpeg_info);

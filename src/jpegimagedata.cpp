@@ -17,10 +17,10 @@ bool parse_jpeg_info(std::ifstream& file, jpeg_info_t* jpeg_info, bool info_only
     return false;
   }
 
-  u_short marker, length, c;
+  u_short marker, length;
   u_char marker_length[4], data[0xfffff];
-  off_t offset = 0;
   const u_char *dp;
+  bool parse_check = true;
   while (file.read(reinterpret_cast<char*>(&marker_length), 4)) {
     if (marker_length[0] != 0xff) {
       continue;
@@ -30,34 +30,36 @@ bool parse_jpeg_info(std::ifstream& file, jpeg_info_t* jpeg_info, bool info_only
     
     file.read(reinterpret_cast<char*>(&data), length);
     dp = data;
-    offset = 0;
     switch (marker) {
       case 0xffe0:  // APP0 (Application 0)
         break;
       case 0xffc0:  // SOF0 (Start of Frame)
       case 0xffc1:  // SOF1 (Start of Frame)
-        parse_sof(jpeg_info, dp, marker, length);
+        parse_check = parse_sof(jpeg_info, dp, marker, length);
         break;
       case 0xffc4:  // DHF (Define Huffman Table)
         if (info_only) break;
-        parse_dht(jpeg_info, dp, marker, length);
+        parse_check = parse_dht(jpeg_info, dp, marker, length);
         break;
       case 0xffda:  // SOS (Start of Scan)
+        parse_check = parse_sos(jpeg_info, dp, marker, length);
         break;
       case 0xffdb:  // DQT (Define Quantisation Table)
-        parse_dqt(jpeg_info, dp, marker, length);
+        parse_check = parse_dqt(jpeg_info, dp, marker, length);
         break;
       case 0xffdd:  // DRI (Define Restart Interval)
-        parse_dri(jpeg_info, dp, marker, length);
+        parse_check = parse_dri(jpeg_info, dp, marker, length);
         break;
     
       default:  // skip
         file.seekg(length, std::ios_base::cur);
         break;
     }
-    
     if (marker == 0xffda) {
       break;
+    }
+    if (parse_check == false) {
+      return false;
     }
   }
   
@@ -150,9 +152,8 @@ bool parse_dht(jpeg_info_t* jpeg_info, const u_char* data, const u_int marker, c
   u_int8_t table_info, table_class, table_id;
   while (offset < length) {
     table_info = data[offset++];
-    table_class = (table_info << 4) & 0x0f; /// 0: DC, 1: AC
+    table_class = (table_info << 4) & 0x0f;  // 0: DC, 1: AC
     table_id = table_info & 0x0f;            // Table ID (0-3)
-    printf("Read DHT CLASS: %d TABLE ID: %d at OFFSET: %d/%d\n", table_class, table_id, offset, length);
     if (table_id > 3) {
       printf("DHT Invalid ID: %d\n", table_id);
       return false;
@@ -187,6 +188,11 @@ bool parse_dht(jpeg_info_t* jpeg_info, const u_char* data, const u_int marker, c
       huff_table->symbols[i] = data[offset++];
     }
   }
+  return true;
+}
+
+bool parse_sos(jpeg_info_t* jpeg_info, const u_char* data, const u_int marker, const u_int length) {
+  
   return true;
 }
 
