@@ -63,11 +63,3 @@ u_int32_t read_4_bytes_unsigned(std::ifstream& file, uint16_t bitorder) {
 int32_t read_4_byte_signed(std::ifstream& file, uint16_t bitorder) {
   return (int32_t)read_4_bytes_unsigned(file, bitorder);
 }
-
-double get_file_size(std::ifstream& file) {
-  double file_size = 0;
-  file.seekg(0, std::ios::end);
-  file_size = file.tellg();
-  file.seekg(0, std::ios::beg);
-  return file_size;
-}

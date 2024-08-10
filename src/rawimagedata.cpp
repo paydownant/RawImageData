@@ -3,45 +3,15 @@
 
 RawImageData :: RawImageData(const string_t& file_path) : file_path(file_path), file(file_path, std::ios::binary) {
   if (!file) {
-    throw runtime_error_t("Unable to open file: " + file_path);
+    throw std::runtime_error("Unable to open file: " + file_path);
   }
-
-  raw_image_file.base = 0;
-  raw_image_file.bitorder = 0x4949; // default = little endian
-  raw_image_file.version = 0;
-  raw_image_file.first_offset = 0;
-  raw_image_file.raw_ifd_count = 0;
-  raw_image_file.file_size = 0;
-  raw_image_file.make[0] = 0;
-  raw_image_file.model[0] = 0;
-  raw_image_file.software[0] = 0;
-  raw_image_file.time_stamp = 0;
-  raw_image_file.time_zone = 0; // default = UTC
-  raw_image_file.artist[0] = 0;
-  raw_image_file.copyright[0] = 0;
-
-  raw_image_file.exif_offset = 0;
-
-  exif.camera_make[0] = 0;
-  exif.camera_model[0] = 0;
-  exif.date_time = -1;
-  exif.focal_length = -1;
-  exif.exposure = -1;
-  exif.f_number = -1;
-  exif.iso_sensitivity = -1;
-  exif.lens_model[0] = 0;
 
   raw_identify();
 
-  if (parse_raw_image(raw_image_file.base)) {
+  if (parse_raw(raw_image_file.base)) {
+    print_data();
     // apply raw frame (tiff)
   }
-
-  off_t jpeg_offset_test = 0x3c800;
-  file.seekg(jpeg_offset_test, std::ios::beg);
-  jpeg_info_t jpeg_info;
-  parse_jpeg_info(file, &jpeg_info, false);
-  print_jpeg_info(&jpeg_info);
   
 }
 
@@ -52,20 +22,17 @@ RawImageData :: ~RawImageData() {
 bool RawImageData :: raw_identify() {
 
   char raw_image_header[32];
-  file.seekg(0, std::ios::beg);
-  file.read(raw_image_header, sizeof(raw_image_header)/sizeof(raw_image_header[0]));
-  file.seekg(0, std::ios::beg);
-
-  raw_image_file.file_size = get_file_size(file);
 
   raw_image_file.bitorder = read_2_bytes_unsigned(file, raw_image_file.bitorder);
+  file.seekg(0, std::ios::beg);
+  file.read(raw_image_header, sizeof(raw_image_header)/sizeof(raw_image_header[0]));
+
+  file.seekg(0, std::ios::end);
+  raw_image_file.file_size = file.tellg();
+
   if (raw_image_file.bitorder == 0x4949 || raw_image_file.bitorder == 0x4D4D) {
     // II or MM at the beginng of the file
     raw_image_file.base = 0;
-    raw_image_file.version = read_2_bytes_unsigned(file, raw_image_file.bitorder);
-    raw_image_file.first_offset = read_4_bytes_unsigned(file, raw_image_file.bitorder);
-    printf("Version: %d, First Offset: %d, File Size: %d\n", raw_image_file.version, raw_image_file.first_offset, raw_image_file.file_size);
-    
   } else {
     return false;
   }
@@ -73,17 +40,43 @@ bool RawImageData :: raw_identify() {
   return true;
 }
 
-bool RawImageData :: parse_raw_image(off_t raw_image_file_base) {
-  // go to the first offset
-  file.seekg(raw_image_file.first_offset, std::ios::beg);
+bool RawImageData :: parse_raw(off_t raw_image_file_base) {
   // reset ifd count
   raw_image_file.raw_ifd_count = 0; // fails since it shouldn't be 0 unless its the first call (in case of recursion)
   memset(raw_image_ifd, 0, sizeof(raw_image_ifd));
+
+  file.seekg(0, std::ios::beg);
+  parse_raw_image(raw_image_file_base);
+
+  return true;
+}
+
+bool RawImageData :: parse_raw_image(off_t raw_image_file_base) {
+  // go to the first offset
+  file.seekg(raw_image_file_base, std::ios::beg);
   
+  u_int curr_bitorder, version;
   off_t ifd_offset;
 
-  while ((ifd_offset = parse_raw_image_ifd(raw_image_file_base))) {
-    file.seekg(ifd_offset, std::ios::beg);
+  printf("OFFSET: %d\n", file.tellg());
+  
+  curr_bitorder = raw_image_file.bitorder;
+  raw_image_file.bitorder = read_2_bytes_unsigned(file, raw_image_file.bitorder);
+  printf("0x%x\n", raw_image_file.bitorder);
+  
+  if (raw_image_file.bitorder != 0x4949 && raw_image_file.bitorder != 0x4d4d) {
+    raw_image_file.bitorder = curr_bitorder;
+    return false;
+  }
+
+  version = read_2_bytes_unsigned(file, raw_image_file.bitorder);
+  // ifd_offset = read_4_bytes_unsigned(file, raw_image_file.bitorder);
+
+  while ((ifd_offset = read_4_bytes_unsigned(file, raw_image_file.bitorder))) {
+    file.seekg(ifd_offset + raw_image_file_base, std::ios::beg);
+    if (!parse_raw_image_ifd(raw_image_file_base)) {
+      break;
+    }
   }
 
   return true;
@@ -94,7 +87,7 @@ u_int64_t RawImageData :: parse_raw_image_ifd(off_t raw_image_file_base) {
   off_t curr_ifd_offset, next_ifd_offset;
   if (raw_image_file.raw_ifd_count >= sizeof(raw_image_ifd) / sizeof(raw_image_ifd[0])) {
     fprintf(stderr, "Raw File IFD Count Exceeded\n");
-    return 0;
+    return false;
   }
   raw_image_file.raw_ifd_count++;
   ifd = raw_image_file.raw_ifd_count;
@@ -105,17 +98,12 @@ u_int64_t RawImageData :: parse_raw_image_ifd(off_t raw_image_file_base) {
     parse_raw_image_tag(raw_image_file_base, ifd);
   }
 
-  curr_ifd_offset = file.tellg();
-  next_ifd_offset = read_4_bytes_unsigned(file, raw_image_file.bitorder) + raw_image_file_base;
-  file.seekg(curr_ifd_offset, std::ios::beg);
-
-  printf("next ifd offset: %d\n", curr_ifd_offset);
-  return next_ifd_offset;
+  return true;
 }
 
 void RawImageData :: parse_raw_image_tag(off_t raw_image_file_base, u_int64_t ifd) {
   u_int32_t tag_id, tag_type, tag_count;
-  off_t tag_data_offset, tag_offset, sub_ifd_offset;
+  off_t offset, tag_data_offset, tag_offset, sub_ifd_offset;
   get_tag_header(raw_image_file_base, &tag_id, &tag_type, &tag_count, &tag_offset);
   printf("tag: %d type: %d count: %d offset: %d\n", tag_id, tag_type, tag_count, tag_offset);
   tag_data_offset = get_tag_data_offset(raw_image_file_base, tag_type, tag_count);
@@ -203,17 +191,20 @@ void RawImageData :: parse_raw_image_tag(off_t raw_image_file_base, u_int64_t if
     case 325: case 71:  // TileByteCounts
       break;
     case 330: case 76:  // SubIFDs
-      sub_ifd_offset = get_tag_value(tag_type) + raw_image_file_base;
-      printf("sub ifd offset: %d\n", sub_ifd_offset);
-      if (sub_ifd_offset) {
+      while (tag_count--) {
+        offset = file.tellg();
+        sub_ifd_offset = read_4_bytes_unsigned(file, raw_image_file.bitorder) + raw_image_file_base;
         file.seekg(sub_ifd_offset, std::ios::beg);
-        while (sub_ifd_offset = parse_raw_image_ifd(raw_image_file_base)) {
-          file.seekg(sub_ifd_offset, std::ios::beg);
+        if (!parse_raw_image_ifd(raw_image_file_base)) {
+          break;
         }
+        file.seekg(offset + 4, std::ios::beg);
       }
+
       break;
     case 513:           // JPEGInterchangeFormat
-      raw_image_ifd[ifd].jpeg_if_offset = get_tag_value(tag_type) + raw_image_file_base;
+      raw_image_ifd[ifd].strip_offset = get_tag_value(tag_type) + raw_image_file_base;
+      parse_strip_data(raw_image_file_base, ifd);
       break;
     case 514:           // JPEGInterchangeFormatLength
       raw_image_ifd[ifd].jpeg_if_length = get_tag_value(tag_type);
@@ -252,7 +243,6 @@ void RawImageData :: parse_raw_image_tag(off_t raw_image_file_base, u_int64_t if
       parse_gps_data(raw_image_file_base);
       break;
     
-    
     default:
       break;
   }
@@ -261,18 +251,27 @@ void RawImageData :: parse_raw_image_tag(off_t raw_image_file_base, u_int64_t if
 
 bool RawImageData :: parse_strip_data(off_t raw_image_file_base, u_int64_t ifd) {
   jpeg_info_t jpeg_info;
-  
-  if (!raw_image_ifd[ifd].bps && raw_image_ifd[ifd].strip_offset > 0) {
-    file.seekg(raw_image_ifd[ifd].strip_offset, std::ios::beg);
-    if (parse_jpeg_info(file, &jpeg_info, false)) {
-      parse_raw_image(raw_image_ifd[ifd].strip_offset + 12);
-    }
-    return true;
+  printf("Strip Offset: %d\n", raw_image_ifd[ifd].strip_offset);
+  if (raw_image_ifd[ifd].bps || raw_image_ifd[ifd].strip_offset == 0) {
+    return false;
   }
-  return false;
+  file.seekg(raw_image_ifd[ifd].strip_offset, std::ios::beg);
+  if (parse_jpeg_info(file, &jpeg_info, true)) {
+    print_jpeg_info(&jpeg_info);
+    raw_image_ifd[ifd].compression = 6;
+    raw_image_ifd[ifd].width = jpeg_info.width;
+    raw_image_ifd[ifd].height = jpeg_info.height;
+    raw_image_ifd[ifd].bps = jpeg_info.precision;
+    raw_image_ifd[ifd].sample_pixel = jpeg_info.components;
+
+    parse_raw_image(raw_image_ifd[ifd].strip_offset + 12);
+  }
+  
+  return true;
 }
 
 bool RawImageData :: parse_exif_data(off_t raw_image_file_base) {
+  printf("Parse Exif Data\n");
   u_int32_t tag_entries, tag_id, tag_type, tag_count;
   off_t tag_data_offset, tag_offset;
   
@@ -312,6 +311,7 @@ bool RawImageData :: parse_exif_data(off_t raw_image_file_base) {
         exif.focal_length = get_tag_value(tag_type);
         break;
       case 0x927c:  // MakerNote
+        parse_maker_note(raw_image_file_base, 0);
         break;
       case 0x9286:  // UserComment
         break;
@@ -324,6 +324,11 @@ bool RawImageData :: parse_exif_data(off_t raw_image_file_base) {
 
     file.seekg(tag_offset, std::ios::beg); 
   }
+  return true;
+}
+
+bool RawImageData :: parse_maker_note(off_t raw_image_file_base, int uptag) {
+
   return true;
 }
 
@@ -457,4 +462,24 @@ double RawImageData :: get_tag_value(u_int32_t tag_type) {
 }
 
 
+void RawImageData :: print_data() {
+  printf("\n================RAW FILE DATA===============\n");
+  printf("Base offset: %d\n", raw_image_file.base);
+  printf("Bit ordering: 0x%x\n", raw_image_file.bitorder);
+  printf("Version: %d\n", raw_image_file.version);
+  printf("File size: %.2lfMB\n", (float)raw_image_file.file_size / 1000000);
+  printf("Make: %s\n", raw_image_file.make);
+  printf("Model: %s\n", raw_image_file.model);
+  printf("Software: %s\n", raw_image_file.software);
+  printf("Artist: %s\n", raw_image_file.artist);
+  printf("Copyright: %s\n", raw_image_file.copyright);
 
+  printf("\n================EXIF DATA===============\n");
+  printf("Camera Make: %s\n", exif.camera_make);
+  printf("Camera Model: %s\n", exif.camera_model);
+  printf("Date time: %d\n", exif.date_time);
+  printf("Exposure: %lf\n", exif.exposure);
+  printf("F Number: %lf\n", exif.f_number);
+  printf("ISO Sensitivity: %d\n", exif.iso_sensitivity);
+  printf("Lens Model: %s\n", exif.lens_model);
+}
