@@ -1,6 +1,10 @@
 
 #include "jpegimagedata.h"
 
+/**
+ * https://yasoob.me/posts/understanding-and-writing-jpeg-decoder-in-python/
+ */
+
 bool parse_jpeg_info(std::ifstream& file, jpeg_info_t* jpeg_info, bool info_only) {
   memset(jpeg_info, 0, sizeof(*jpeg_info));
 
@@ -26,17 +30,14 @@ bool parse_jpeg_info(std::ifstream& file, jpeg_info_t* jpeg_info, bool info_only
     length = (marker_length[2] << 8 | marker_length[3]) - 2;
     
     file.read(reinterpret_cast<char*>(&data), length);
+    dp = data;
     offset = 0;
     switch (marker) {
       case 0xffe0:  // APP0 (Application 0)
         break;
       case 0xffc0:  // SOF0 (Start of Frame)
       case 0xffc1:  // SOF1 (Start of Frame)
-        jpeg_info->frame_type = marker & 0xff;
-        jpeg_info->precision = data[offset++];
-        jpeg_info->height = (data[offset++] << 8 | data[offset++]);
-        jpeg_info->width = (data[offset++] << 8 | data[offset++]);
-        jpeg_info->components = data[offset++];
+        parse_sof(jpeg_info, dp, marker, length);
         break;
       case 0xffc4:  // DHF (Define Huffman Table)
         if (info_only) break;
@@ -44,11 +45,10 @@ bool parse_jpeg_info(std::ifstream& file, jpeg_info_t* jpeg_info, bool info_only
       case 0xffda:  // SOS (Start of Scan)
         break;
       case 0xffdb:  // DQT (Define Quantisation Table)
-        dp = data;
-        parse_quantisation_table(&jpeg_info, &dp, length);
+        parse_dqt(jpeg_info, dp, marker, length);
         break;
       case 0xffdd:  // DRI (Define Restart Interval)
-        jpeg_info->restart = (data[offset++] << 8 | data[offset++]);
+        parse_dri(jpeg_info, dp, marker, length);
         break;
     
       default:  // skip
@@ -61,60 +61,136 @@ bool parse_jpeg_info(std::ifstream& file, jpeg_info_t* jpeg_info, bool info_only
     }
   }
   
+  return true;
+}
+
+bool parse_sof(jpeg_info_t* jpeg_info, const u_char* data, const u_int marker, const u_int length) {
+  off_t offset = 0;
+  if (jpeg_info->components != 0) {
+    return false;
+  }
+  jpeg_info->frame_type = marker & 0xff;
+  jpeg_info->precision = data[offset++];
+  jpeg_info->height = (data[offset++] << 8 | data[offset++]);
+  jpeg_info->width = (data[offset++] << 8 | data[offset++]);
+  jpeg_info->components = data[offset++];
+
+  colour_component_t *component;
+  u_int component_id, sampling_factor;
+  for (u_int i = 0; i < jpeg_info->components; ++i) {
+    component_id = data[offset++];
+    if (component_id == 0) {
+      jpeg_info->zero_based = true;
+    }
+    if (jpeg_info->zero_based) {
+      component_id += 1;
+    }
+    if (component_id == 0 || component_id > 5) {
+      return false;
+    }
+
+    component = &jpeg_info->colour_components[component_id - 1];
+    if (component->set) {
+      return false;
+    }
+    component->set = true;
+    sampling_factor = data[offset++];
+    component->h_sampling_factor = sampling_factor >> 4;
+    component->v_sampling_factor = sampling_factor & 0x0f;
+    component->quantisation_table_id = data[offset++];
+    if (component->quantisation_table_id > 3) {
+      return false;
+    }
+  }
+
   if (jpeg_info->precision > 16 || jpeg_info->precision == 0) {
     return false;
   }
   if (jpeg_info->components > 6 || jpeg_info->components == 0) {
     return false;
   }
-  if (jpeg_info->height == 0 || jpeg_info == 0) {
+  if (jpeg_info->height == 0 || jpeg_info->width == 0) {
     return false;
   }
-  
+
   return true;
 }
 
-void parse_quantisation_table(jpeg_info_t** jpeg_info, const u_char** data, const u_int length) {
-  off_t offset;
+bool parse_dqt(jpeg_info_t* jpeg_info, const u_char* data, const u_int marker, const u_int length) {
+  off_t offset = 0;
   u_int8_t table_info, table_id, table_class;
-
-  offset = 0;
+  
   while (offset < length) {
-    table_info = (*data)[offset];
+    table_info = data[offset];
     offset++;
     table_class = (table_info << 4) & 0x0f;
     table_id = table_info & 0x0f;
 
     if (table_id > 3) {
       fprintf(stderr, "Invalid Quantisation Table ID of %d\n", (u_int)table_id);
-      return;
+      return false;
     }
-    (*jpeg_info)->quant[table_id].set = true;
+    jpeg_info->quant[table_id].set = true;
     
     if (table_class != 0) {
       for (u_int i = 0; i < 64; ++i) {
-        (*jpeg_info)->quant[table_id].table[ZZ_MATRIX[i]] = ((*data)[offset++] << 8) + ((*data)[offset++]);
+        jpeg_info->quant[table_id].table[ZZ_MATRIX[i]] = (data[offset++] << 8) + (data[offset++]);
       }
     } else {
       for (u_int i = 0; i < 64; ++i) {
-        (*jpeg_info)->quant[table_id].table[ZZ_MATRIX[i]] = ((*data)[offset++]);
+        jpeg_info->quant[table_id].table[ZZ_MATRIX[i]] = (data[offset++]);
       }
     }
-
-    printf("Quantisation Table Values:\n");
-    for (u_int i = 0; i < 64; ++i) {
-      printf("%d ", (*jpeg_info)->quant[table_id].table[i]);
-      if ((i+1) % 8 == 0) {
-        printf("\n");
-      }
-    }
-    printf("\n");
-
   }
+  return true;
 }
 
-void parse_huff_table(jpeg_info_t** jpeg_info, const u_char** data, const u_int length) {
+bool parse_dht(jpeg_info_t* jpeg_info, const u_char* data, const u_int marker, const u_int length) {
+  return true;
+}
 
+bool parse_dri(jpeg_info_t* jpeg_info, const u_char* data, const u_int marker, const u_int length) {
+  off_t offset = 0;
+  jpeg_info->restart_interval = (data[offset++] << 8 | data[offset++]);
+  return true;
+}
+
+void print_jpeg_info(jpeg_info_t* jpeg_info) {
+  printf("JPEG_INFO\n");
+
+  printf("================SOF================\n");
+  printf("Frame Type: 0x%x\n", jpeg_info->frame_type);
+  printf("Precision: %d\n", jpeg_info->precision);
+  printf("Width: %d\n", jpeg_info->width);
+  printf("Height: %d\n", jpeg_info->height);
+  printf("Components: %d\n", jpeg_info->components);
+  for (u_int i = 0; i < 6; ++i) {
+    if (jpeg_info->colour_components[i].set) {
+      printf("Colour Component:\n");
+      printf("Horizontal Sampling Factor: %d\n", jpeg_info->colour_components[i].h_sampling_factor);
+      printf("Vertical Sampling Factor: %d\n", jpeg_info->colour_components[i].v_sampling_factor);
+      printf("Quantisation Table ID: %d\n", jpeg_info->colour_components[i].quantisation_table_id);
+    }
+  }
+  printf("==================================\n");
+
+  printf("================DQT================\n");
+  for (u_int i = 0; i < 4; ++i) {
+    if (jpeg_info->quant[i].set) {
+      for (u_int j = 0; j < 64; ++j) {
+        printf("%d ", jpeg_info->quant[i].table[j]);
+        if ((j+1) % 8 == 0) {
+          printf("\n");
+        }
+      }
+      printf("\n");
+    }
+  }
+  printf("===================================\n");
+
+  printf("================DRI================\n");
+  printf("Restart Interval: %d\n", jpeg_info->restart_interval);
+  printf("===================================\n");
 }
 
 huff_t* get_huff_tree(const u_char **dht_segment) {

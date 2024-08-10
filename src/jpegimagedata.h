@@ -21,7 +21,14 @@ const u_char ZZ_MATRIX[] = {
 };
 
 struct quantisation_table_t {
-  u_int table[64] = {0};
+  u_int table[64] = { 0 };
+  bool set = false;
+};
+
+struct colour_component_t {
+  u_int h_sampling_factor = 1;
+  u_int v_sampling_factor = 1;
+  u_int quantisation_table_id = 0;
   bool set = false;
 };
 
@@ -31,23 +38,24 @@ struct huff_t {
 };
 
 struct jpeg_info_t {
-  // APP
-  int identifier, ver, dpi;
   // SOF
-  int frame_type, precision, width, height, components;
+  u_int frame_type = 0, precision = 0, width = 0, height = 0, components = 0;
+  colour_component_t colour_components[6];
+  bool zero_based = false;
   // DHT
   u_short *huff[20], *free[20];
   huff_t *huff_data[20], *free_data[20];
   // DQT
   quantisation_table_t quant[4];
   // DRI
-  int restart;
+  u_int restart_interval = 0;;
 };
 
 bool parse_jpeg_info(std::ifstream& file, jpeg_info_t* jpeg_info, bool info_only);
-
-void parse_quantisation_table(jpeg_info_t** jpeg_info, const u_char** data, const u_int length);
-void parse_huff_table(jpeg_info_t** jpeg_info, const u_char** data, const u_int length);
-
+bool parse_sof(jpeg_info_t* jpeg_info, const u_char* data, const u_int marker, const u_int length);
+bool parse_dqt(jpeg_info_t* jpeg_info, const u_char* data, const u_int marker, const u_int length);
+bool parse_dht(jpeg_info_t* jpeg_info, const u_char* data, const u_int marker, const u_int length);
+bool parse_dri(jpeg_info_t* jpeg_info, const u_char* data, const u_int marker, const u_int length);
+void print_jpeg_info(jpeg_info_t* jpeg_info);
 
 huff_t* get_huff_tree(const u_char **dht_segment);

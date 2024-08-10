@@ -74,11 +74,6 @@ private:
     int tile_width, tile_length;
   } raw_image_ifd[8];
 
-  struct jpeg_header_t {
-    int algo, bits, height, width, clrs, sraw, psv, restart, vpred[6];
-    ushort quant[64], idct[64], *huff[20], *free[20], *row;
-  };
-
   enum class Raw_Tag_Type_Bytes {
     BYTE = 1,
     ASCII = 1,
@@ -95,7 +90,6 @@ private:
   };
 
   // Constants
-  const u_char MAGIC_JPEG[2] = {0xff, 0xd8};
   //static constexpr unsigned raw_tag_type_bytes[14] = {1,1,1,2,4,8,1,1,2,4,8,4,8,4};
   
 
@@ -119,7 +113,5 @@ private:
   off_t get_tag_data_offset(off_t raw_image_file_base, u_int32_t tag_type, u_int32_t tag_count);
   void get_tag_header(off_t raw_image_file_base, u_int32_t *tag_id, u_int32_t *tag_type, u_int32_t *tag_count, off_t *tag_offset);
   double get_tag_value(u_int32_t tag_type);
-
-  bool get_jpeg_header(jpeg_header_t* jpeg_header, bool info_only);
 
 };

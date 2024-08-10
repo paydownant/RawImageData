@@ -36,6 +36,12 @@ RawImageData :: RawImageData(const string_t& file_path) : file_path(file_path), 
   if (parse_raw_image(raw_image_file.base)) {
     // apply raw frame (tiff)
   }
+
+  off_t jpeg_offset_test = 0x3c800;
+  file.seekg(jpeg_offset_test, std::ios::beg);
+  jpeg_info_t jpeg_info;
+  parse_jpeg_info(file, &jpeg_info, false);
+  print_jpeg_info(&jpeg_info);
   
 }
 
@@ -450,68 +456,5 @@ double RawImageData :: get_tag_value(u_int32_t tag_type) {
   }
 }
 
-/**
- * https://yasoob.me/posts/understanding-and-writing-jpeg-decoder-in-python/
- */
-bool RawImageData :: get_jpeg_header(jpeg_header_t* jpeg_header, bool info_only) {
-  u_char buffer[2] = {0xFF, 0xFF};
-  memset(jpeg_header, 0, sizeof(*jpeg_header));
 
-  if (!file.read(reinterpret_cast<char*>(&buffer), 2)) {
-    return false;
-  }
-  if (memcmp(buffer, MAGIC_JPEG, 2)) {
-    // Magic number does not match FF D8 ...
-    printf("check jpeg: %02X %02X\n", buffer[0], buffer[1]);
-    return false;
-  }
-
-  int len = 0;
-  while (file.read(reinterpret_cast<char*>(&buffer), 2)) {
-    if (buffer[0] != 0xff) {
-      continue;
-    }
-    switch (buffer[1]) {
-      case 0xC0:  // SOF0
-      case 0xC1:  // SOF1
-        file.read(reinterpret_cast<char*>(&buffer), 2);
-        file.read(reinterpret_cast<char*>(&buffer), 1);
-        jpeg_header->bits = buffer[0];
-        file.read(reinterpret_cast<char*>(&buffer), 2);
-        jpeg_header->height = (buffer[0] << 8 | buffer[1]);
-        file.read(reinterpret_cast<char*>(&buffer), 2);
-        jpeg_header->width = (buffer[0] << 8 | buffer[1]);
-        file.read(reinterpret_cast<char*>(&buffer), 1);
-        jpeg_header->clrs = buffer[0];
-        break;
-      case 0xC4:  // Huffman Table
-        file.read(reinterpret_cast<char*>(&buffer), 2);
-        len = (buffer[0] << 8 | buffer[1]);
-        len -= 2;
-        break;
-    
-      default:
-        // Skip over other markers
-        file.read(reinterpret_cast<char*>(buffer), 2);
-        int length = (buffer[0] << 8) | buffer[1];
-        file.seekg(length - 2, std::ios_base::cur);
-        break;
-    }
-  }
-
-  if (jpeg_header->bits > 16 || jpeg_header == 0) {
-    return false;
-  }
-  if (jpeg_header->clrs > 6 || jpeg_header->clrs == 0) {
-    return false;
-  }
-  if (jpeg_header->height == 0 || !jpeg_header->width == 0) {
-    return false;
-  }
-  if (jpeg_header->huff[0] == 0) {
-    return false;
-  }
-
-  return true;
-}
 
