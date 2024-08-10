@@ -20,10 +20,6 @@ const u_char ZZ_MATRIX[] = {
   53, 60, 61, 54, 47, 55, 62, 63
 };
 
-struct quantisation_table_t {
-  u_int table[64] = { 0 };
-  bool set = false;
-};
 
 struct colour_component_t {
   u_int h_sampling_factor = 1;
@@ -32,9 +28,15 @@ struct colour_component_t {
   bool set = false;
 };
 
-struct huff_t {
-  u_short symbol;
-  u_short code;
+struct quantisation_table_t {
+  u_int table[64] = { 0 };
+  bool set = false;
+};
+
+struct huffman_table_t {
+  u_int offsets[17] = { 0 };
+  u_int symbols[162] = { 0 };
+  bool set = false;
 };
 
 struct jpeg_info_t {
@@ -43,8 +45,8 @@ struct jpeg_info_t {
   colour_component_t colour_components[6];
   bool zero_based = false;
   // DHT
-  u_short *huff[20], *free[20];
-  huff_t *huff_data[20], *free_data[20];
+  huffman_table_t huff_dc_tables[4];
+  huffman_table_t huff_ac_tables[4];
   // DQT
   quantisation_table_t quant[4];
   // DRI
@@ -57,5 +59,3 @@ bool parse_dqt(jpeg_info_t* jpeg_info, const u_char* data, const u_int marker, c
 bool parse_dht(jpeg_info_t* jpeg_info, const u_char* data, const u_int marker, const u_int length);
 bool parse_dri(jpeg_info_t* jpeg_info, const u_char* data, const u_int marker, const u_int length);
 void print_jpeg_info(jpeg_info_t* jpeg_info);
-
-huff_t* get_huff_tree(const u_char **dht_segment);

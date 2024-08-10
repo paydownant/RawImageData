@@ -6,7 +6,6 @@
  */
 
 bool parse_jpeg_info(std::ifstream& file, jpeg_info_t* jpeg_info, bool info_only) {
-  memset(jpeg_info, 0, sizeof(*jpeg_info));
 
   u_char buffer[2];  
   if (!file.read(reinterpret_cast<char*>(&buffer), 2)) {
@@ -41,6 +40,7 @@ bool parse_jpeg_info(std::ifstream& file, jpeg_info_t* jpeg_info, bool info_only
         break;
       case 0xffc4:  // DHF (Define Huffman Table)
         if (info_only) break;
+        parse_dht(jpeg_info, dp, marker, length);
         break;
       case 0xffda:  // SOS (Start of Scan)
         break;
@@ -146,6 +146,47 @@ bool parse_dqt(jpeg_info_t* jpeg_info, const u_char* data, const u_int marker, c
 }
 
 bool parse_dht(jpeg_info_t* jpeg_info, const u_char* data, const u_int marker, const u_int length) {
+  off_t offset = 0;
+  u_int8_t table_info, table_class, table_id;
+  while (offset < length) {
+    table_info = data[offset++];
+    table_class = (table_info << 4) & 0x0f; /// 0: DC, 1: AC
+    table_id = table_info & 0x0f;            // Table ID (0-3)
+    printf("Read DHT CLASS: %d TABLE ID: %d at OFFSET: %d/%d\n", table_class, table_id, offset, length);
+    if (table_id > 3) {
+      printf("DHT Invalid ID: %d\n", table_id);
+      return false;
+    }
+
+    huffman_table_t *huff_table;
+    if (table_class == 0) {
+      /* DC Table */
+      huff_table = &jpeg_info->huff_dc_tables[table_id];
+    } else if (table_class == 1) {
+      /* AC Table */
+      huff_table = &jpeg_info->huff_ac_tables[table_id];
+    } else {
+      printf("DHT Invalid Class: %d\n", table_class);
+      return false;
+    }
+    huff_table->set = true;
+
+    huff_table->offsets[0] = 0;
+    u_int num_symbols = 0;
+    for (u_int i = 1; i <= 16; ++i) {
+      num_symbols += data[offset++];
+      huff_table->offsets[i] = num_symbols;
+    }
+
+    if (num_symbols > 162) {
+      printf("Number of Huff Symbols Exceeded 162: %d\n", num_symbols);
+      return false;
+    }
+
+    for (u_int i = 0; i < num_symbols; ++i) {
+      huff_table->symbols[i] = data[offset++];
+    }
+  }
   return true;
 }
 
@@ -166,13 +207,13 @@ void print_jpeg_info(jpeg_info_t* jpeg_info) {
   printf("Components: %d\n", jpeg_info->components);
   for (u_int i = 0; i < 6; ++i) {
     if (jpeg_info->colour_components[i].set) {
-      printf("Colour Component:\n");
-      printf("Horizontal Sampling Factor: %d\n", jpeg_info->colour_components[i].h_sampling_factor);
-      printf("Vertical Sampling Factor: %d\n", jpeg_info->colour_components[i].v_sampling_factor);
-      printf("Quantisation Table ID: %d\n", jpeg_info->colour_components[i].quantisation_table_id);
+      printf("  Colour Component:\n");
+      printf("  Horizontal Sampling Factor: %d\n", jpeg_info->colour_components[i].h_sampling_factor);
+      printf("  Vertical Sampling Factor: %d\n", jpeg_info->colour_components[i].v_sampling_factor);
+      printf("  Quantisation Table ID: %d\n", jpeg_info->colour_components[i].quantisation_table_id);
     }
   }
-  printf("==================================\n");
+  printf("===================================\n");
 
   printf("================DQT================\n");
   for (u_int i = 0; i < 4; ++i) {
@@ -188,38 +229,39 @@ void print_jpeg_info(jpeg_info_t* jpeg_info) {
   }
   printf("===================================\n");
 
+  printf("================DHT================\n");
+  printf("DC Tables:\n");
+  for (u_int i = 0; i < 4; ++i) {
+    if (jpeg_info->huff_dc_tables[i].set) {
+      printf("Table ID: %d\n", i);
+      printf("Symbols:\n");
+      for (u_int j = 0; j < 16; ++j) {
+        printf("%d: ", j + 1);
+        for (u_int k = jpeg_info->huff_dc_tables[i].offsets[j]; k < jpeg_info->huff_dc_tables[i].offsets[j + 1]; ++k) {
+          printf("%x ", (u_int)jpeg_info->huff_dc_tables[i].symbols[k]);
+        }
+        printf("\n");
+      }
+    } 
+  }
+  printf("\n");
+  printf("AC Tables:\n");
+  for (u_int i = 0; i < 4; ++i) {
+    if (jpeg_info->huff_ac_tables[i].set) {
+      printf("Table ID: %d\n", i);
+      printf("Symbols:\n");
+      for (u_int j = 0; j < 16; ++j) {
+        printf("%d: ", j + 1);
+        for (u_int k = jpeg_info->huff_ac_tables[i].offsets[j]; k < jpeg_info->huff_ac_tables[i].offsets[j + 1]; ++k) {
+          printf("%x ", (u_int)jpeg_info->huff_ac_tables[i].symbols[k]);
+        }
+        printf("\n");
+      }
+    } 
+  }
+  printf("===================================\n");
+
   printf("================DRI================\n");
   printf("Restart Interval: %d\n", jpeg_info->restart_interval);
   printf("===================================\n");
-}
-
-huff_t* get_huff_tree(const u_char **dht_segment) {
-  u_int8_t table_info, table_class, table_id;
-  off_t pos = 1;
-  table_info = (*dht_segment)[pos];
-  table_class = (table_info << 4) & 0x0f;  // 0: DC, 1: AC
-  table_id = table_info & 0x0f;  // Table ID (0-3)
-  pos++;
-
-  std::vector<int> lengths(16);
-  /* 16 bytes for lengths */
-  for (int i = 0; i < 16; i++) {
-    lengths[i] = (*dht_segment)[pos++];
-  }
-
-  int num_symbols = 0;
-  for (int length : lengths) {
-    num_symbols += length;
-  }
-
-  huff_t* huff_data = new huff_t[num_symbols];
-  assert(huff_data);
-
-  std::vector<int> symbols(num_symbols);
-  for (int i = 0; i < num_symbols; i++) {
-    // symbols[i] = (*dht_segment)[pos++];
-    huff_data[i].symbol = (*dht_segment)[pos++];
-  }
-
-  return nullptr;
 }
