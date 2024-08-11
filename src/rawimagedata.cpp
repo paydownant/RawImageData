@@ -8,7 +8,7 @@ RawImageData :: RawImageData(const std::string& file_path) : file_path(file_path
 
   raw_identify();
   if (parse_raw(raw_image_file.base)) {
-    print_data();
+    // print_data();
     // apply raw frame (tiff)
   }
 }
@@ -250,7 +250,7 @@ bool RawImageData :: parse_strip_data(off_t raw_image_file_base, u_int ifd) {
   }
   file.seekg(raw_image_file.raw_image_ifd[ifd].strip_offset, std::ios::beg);
   if (parse_jpeg_info(file, &jpeg_info, true)) {
-    print_jpeg_info(&jpeg_info);
+    // print_jpeg_info(&jpeg_info);
     raw_image_file.raw_image_ifd[ifd].compression = 6;
     raw_image_file.raw_image_ifd[ifd].width = jpeg_info.width;
     raw_image_file.raw_image_ifd[ifd].height = jpeg_info.height;
@@ -264,12 +264,12 @@ bool RawImageData :: parse_strip_data(off_t raw_image_file_base, u_int ifd) {
 }
 
 bool RawImageData :: parse_exif_data(off_t raw_image_file_base) {
-  u_int32_t tag_entries, tag_id, tag_type, tag_count;
+  u_int n_tag_entries, tag_id, tag_type, tag_count;
   off_t tag_data_offset, tag_offset;
   
   file.seekg(raw_image_file.exif_offset, std::ios::beg);
-  tag_entries = read_2_bytes_unsigned(file, raw_image_file.bitorder);
-  for (int i = 0; i < tag_entries; ++i) {
+  n_tag_entries = read_2_bytes_unsigned(file, raw_image_file.bitorder);
+  for (int i = 0; i < n_tag_entries; ++i) {
     get_tag_header(raw_image_file_base, &tag_id, &tag_type, &tag_count, &tag_offset);
     tag_data_offset = get_tag_data_offset(raw_image_file_base, tag_type, tag_count);
     file.seekg(tag_data_offset, std::ios::beg);
@@ -303,7 +303,7 @@ bool RawImageData :: parse_exif_data(off_t raw_image_file_base) {
         raw_image_file.exif.focal_length = get_tag_value(tag_type);
         break;
       case 0x927c:  // MakerNote
-        parse_maker_note(raw_image_file_base, 0);
+        parse_makernote(raw_image_file_base, 0);
         break;
       case 0x9286:  // UserComment
         break;
@@ -313,29 +313,64 @@ bool RawImageData :: parse_exif_data(off_t raw_image_file_base) {
       default:
         break;
     }
-
     file.seekg(tag_offset, std::ios::beg); 
   }
   return true;
 }
 
-bool RawImageData :: parse_maker_note(off_t raw_image_file_base, int uptag) {
+bool RawImageData :: parse_makernote(off_t raw_image_file_base, int uptag) {
+  char maker_magic[10];
+  off_t base, offset;
+  file.read(maker_magic, 10);
+  printf("Parse Maker Note: %s, Offset: %d\n", maker_magic, file.tellg());
+
+  if (!strncasecmp(maker_magic, "Nikon", 6)) {
+    printf("Nikon Found\n");
+    base = file.tellg();
+    raw_image_file.bitorder = read_2_bytes_unsigned(file, raw_image_file.bitorder);
+    read_2_bytes_unsigned(file, raw_image_file.bitorder);
+    offset = read_4_bytes_unsigned(file, raw_image_file.bitorder);
+    if (offset != 8) {
+      return false;
+    }
+
+  } else if (!strncasecmp(maker_magic, "Olympus", 8)) {
+    printf("Olympus Found\n");
+
+  }
+
+
+  if (!strncasecmp(maker_magic, "Nikon", 6)) {
+    parse_markernote_tags_nikon(raw_image_file_base);
+  }
 
   return true;
 }
 
+void RawImageData :: parse_markernote_tags_nikon(off_t raw_image_file_base) {
+  u_int n_tag_entries, tag_id, tag_type, tag_count;
+  off_t tag_data_offset, tag_offset;
+
+  n_tag_entries = read_2_bytes_unsigned(file, raw_image_file.bitorder);
+  for (int i = 0; i < n_tag_entries; ++i) {
+    get_tag_header(raw_image_file_base, &tag_id, &tag_type, &tag_count, &tag_offset);
+    printf("Makernote tag: %d type: %d count: %d offset: %d\n", tag_id, tag_type, tag_count, tag_offset);
+  
+  
+    file.seekg(tag_offset, std::ios::beg);
+  }
+}
+
 bool RawImageData :: parse_gps_data(off_t raw_image_file_base) {
-  u_int32_t tag_entries, tag_id, tag_type, tag_count;
+  u_int n_tag_entries, tag_id, tag_type, tag_count;
   off_t tag_data_offset, tag_offset;
   int data;
-  
   file.seekg(raw_image_file.exif.gps_offset, std::ios::beg);
-  tag_entries = read_2_bytes_unsigned(file, raw_image_file.bitorder);
-  for (int i = 0; i < tag_entries; ++i) {
+  n_tag_entries = read_2_bytes_unsigned(file, raw_image_file.bitorder);
+  for (int i = 0; i < n_tag_entries; ++i) {
     get_tag_header(raw_image_file_base, &tag_id, &tag_type, &tag_count, &tag_offset);
     tag_data_offset = get_tag_data_offset(raw_image_file_base, tag_type, tag_count);
     file.seekg(tag_data_offset, std::ios::beg);
-
     switch (tag_id) {
       case 0:
         for (int i = 0; i < 4; i++) {
@@ -347,8 +382,8 @@ bool RawImageData :: parse_gps_data(off_t raw_image_file_base) {
       default:
         break;
     }
-
     file.seekg(tag_offset, std::ios::beg);
+
   }
   return true;
 }
@@ -375,21 +410,21 @@ bool RawImageData :: parse_time_stamp() {
   return true;
 }
 
-off_t RawImageData :: get_tag_data_offset(off_t raw_image_file_base, u_int32_t tag_type, u_int32_t tag_count) {
-  u_int32_t type_byte = 1;
+off_t RawImageData :: get_tag_data_offset(off_t raw_image_file_base, u_int tag_type, u_int tag_count) {
+  u_int type_byte = 1;
   switch (tag_type) {
-    case 1:   type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::BYTE);     break;
-    case 2:   type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::ASCII);    break;
-    case 3:   type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::SHORT);    break;
-    case 4:   type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::LONG);     break;
-    case 5:   type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::RATIONAL); break;
-    case 6:   type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::SBYTE);    break;
-    case 7:   type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::UNDEFINED);break;
-    case 8:   type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::SSHORT);   break;
-    case 9:   type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::SLONG);    break;
-    case 10:  type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::SRATIONAL);break;
-    case 11:  type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::FLOAT);    break;
-    case 12:  type_byte = static_cast<u_int32_t>(Raw_Tag_Type_Bytes::DOUBLE);   break;
+    case 1:   type_byte = static_cast<u_int>(Raw_Tag_Type_Bytes::BYTE);     break;
+    case 2:   type_byte = static_cast<u_int>(Raw_Tag_Type_Bytes::ASCII);    break;
+    case 3:   type_byte = static_cast<u_int>(Raw_Tag_Type_Bytes::SHORT);    break;
+    case 4:   type_byte = static_cast<u_int>(Raw_Tag_Type_Bytes::LONG);     break;
+    case 5:   type_byte = static_cast<u_int>(Raw_Tag_Type_Bytes::RATIONAL); break;
+    case 6:   type_byte = static_cast<u_int>(Raw_Tag_Type_Bytes::SBYTE);    break;
+    case 7:   type_byte = static_cast<u_int>(Raw_Tag_Type_Bytes::UNDEFINED);break;
+    case 8:   type_byte = static_cast<u_int>(Raw_Tag_Type_Bytes::SSHORT);   break;
+    case 9:   type_byte = static_cast<u_int>(Raw_Tag_Type_Bytes::SLONG);    break;
+    case 10:  type_byte = static_cast<u_int>(Raw_Tag_Type_Bytes::SRATIONAL);break;
+    case 11:  type_byte = static_cast<u_int>(Raw_Tag_Type_Bytes::FLOAT);    break;
+    case 12:  type_byte = static_cast<u_int>(Raw_Tag_Type_Bytes::DOUBLE);   break;
     
     default: type_byte = 1; break;
   }
@@ -399,14 +434,14 @@ off_t RawImageData :: get_tag_data_offset(off_t raw_image_file_base, u_int32_t t
   return file.tellg();
 }
 
-void RawImageData :: get_tag_header(off_t raw_image_file_base, u_int32_t *tag_id, u_int32_t *tag_type, u_int32_t *tag_count, off_t *tag_offset) {
+void RawImageData :: get_tag_header(off_t raw_image_file_base, u_int *tag_id, u_int *tag_type, u_int *tag_count, off_t *tag_offset) {
   *tag_id = read_2_bytes_unsigned(file, raw_image_file.bitorder);
   *tag_type = read_2_bytes_unsigned(file, raw_image_file.bitorder);
   *tag_count = read_4_bytes_unsigned(file, raw_image_file.bitorder);
   *tag_offset = static_cast<int>(file.tellg()) + 4;
 }
 
-double RawImageData :: get_tag_value(u_int32_t tag_type) {
+double RawImageData :: get_tag_value(u_int tag_type) {
   double numerator, denominator;
   char byte_array[8];
   int i, reverse_order;
