@@ -36,14 +36,20 @@ private:
   struct exif_t {
     char camera_make[64] = { 0 };
     char camera_model[64] = { 0 };
-    time_t date_time = -1;
+    char software[64] = { 0 };
 
-    double focal_length = -1;
-    double exposure = -1;
-    double f_number = -1;
-    int iso_sensitivity = -1;
+    double focal_length = 0;
+    double exposure = 0;
+    double f_number = 0;
+    double iso_sensitivity = 0;
 
     char lens_model[64] = { 0 };
+
+    char artist[64] = { 0 };
+    char copyright[64] = { 0 };
+    
+    time_t date_time = 0;
+    char date_time_str[20] = { 0 };
 
     off_t icc_profile_offset = 0;
     u_int icc_profile_count = 0;
@@ -62,16 +68,8 @@ private:
     
     u_int raw_ifd_count = 0;   // Number of IFD
     int file_size = 0;         // File size
-    char make[64] = { 0 };
-    char model[64] = { 0 };
-    char software[64] = { 0 };
-    time_t time_stamp = 0;
-    int time_zone = 0;            // default = UTC
-    char artist[64] = { 0 };
-    char copyright[64] = { 0 };
 
     off_t exif_offset = 0;
-
     exif_t exif;
     raw_image_ifd_t raw_image_ifd[8];
 
@@ -113,7 +111,7 @@ private:
   bool parse_exif_data(off_t raw_image_file_base);
   bool parse_strip_data(off_t raw_image_file_base, u_int ifd);
   bool parse_makernote(off_t raw_image_file_base, int uptag);
-  void parse_markernote_tags_nikon(off_t raw_image_file_base);
+  void parse_markernote_tag_nikon(off_t raw_image_file_base, int uptag, u_int16_t bitorder);
   bool parse_gps_data(off_t raw_image_file_base);
   bool parse_time_stamp();
 

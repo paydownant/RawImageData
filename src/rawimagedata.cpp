@@ -8,7 +8,7 @@ RawImageData :: RawImageData(const std::string& file_path) : file_path(file_path
 
   raw_identify();
   if (parse_raw(raw_image_file.base)) {
-    // print_data();
+    print_data();
     // apply raw frame (tiff)
   }
 }
@@ -131,10 +131,10 @@ void RawImageData :: parse_raw_image_tag(off_t raw_image_file_base, u_int ifd) {
       raw_image_file.raw_image_ifd[ifd].pinterpret = get_tag_value(tag_type);
       break;
     case 271: case 17:  // Make
-      file.read(raw_image_file.make, 64);
+      file.read(raw_image_file.exif.camera_make, 64);
       break;
     case 272: case 18:  // Model
-      file.read(raw_image_file.model, 64);
+      file.read(raw_image_file.exif.camera_model, 64);
       break;
     case 273: case 19:  // StripOffsets
       raw_image_file.raw_image_ifd[ifd].strip_offset = get_tag_value(tag_type) + raw_image_file_base;
@@ -164,13 +164,13 @@ void RawImageData :: parse_raw_image_tag(off_t raw_image_file_base, u_int ifd) {
     case 296: case 42:  // ResolutionUnit
       break;
     case 305: case 51:  // Software
-      file.read(raw_image_file.software, 64);
+      file.read(raw_image_file.exif.software, 64);
       break;
     case 306: case 52:  // DateTime
       parse_time_stamp();
       break;
     case 315: case 61:  // Artist
-      file.read(raw_image_file.artist, 64);
+      file.read(raw_image_file.exif.artist, 64);
       break;
     case 320: case 66:  // ColorMap
       break;
@@ -216,7 +216,7 @@ void RawImageData :: parse_raw_image_tag(off_t raw_image_file_base, u_int ifd) {
     case 33422:         // CFAPattern
       break;
     case 33432:         // Copyright
-      file.read(raw_image_file.copyright, 64);
+      file.read(raw_image_file.exif.copyright, 64);
       break;
     case 33434:         // ExposureTime
       raw_image_file.exif.exposure = get_tag_value(tag_type);
@@ -259,7 +259,6 @@ bool RawImageData :: parse_strip_data(off_t raw_image_file_base, u_int ifd) {
 
     parse_raw_image(raw_image_file.raw_image_ifd[ifd].strip_offset + 12);
   }
-  
   return true;
 }
 
@@ -339,26 +338,50 @@ bool RawImageData :: parse_makernote(off_t raw_image_file_base, int uptag) {
 
   }
 
+  u_int n_tag_entries;
+  u_int16_t bitorder;
 
-  if (!strncasecmp(maker_magic, "Nikon", 6)) {
-    parse_markernote_tags_nikon(raw_image_file_base);
+  bitorder = raw_image_file.bitorder;
+  n_tag_entries = read_2_bytes_unsigned(file, raw_image_file.bitorder);
+
+  for (u_int i = 0; i < n_tag_entries; ++i) {
+    if (!strncasecmp(maker_magic, "Nikon", 6)) {
+      parse_markernote_tag_nikon(base, uptag, bitorder);
+    }
   }
 
   return true;
 }
 
-void RawImageData :: parse_markernote_tags_nikon(off_t raw_image_file_base) {
-  u_int n_tag_entries, tag_id, tag_type, tag_count;
-  off_t tag_data_offset, tag_offset;
+void RawImageData :: parse_markernote_tag_nikon(off_t raw_image_file_base, int uptag, u_int16_t bitorder) {
+  raw_image_file.bitorder = bitorder;
 
-  n_tag_entries = read_2_bytes_unsigned(file, raw_image_file.bitorder);
-  for (int i = 0; i < n_tag_entries; ++i) {
-    get_tag_header(raw_image_file_base, &tag_id, &tag_type, &tag_count, &tag_offset);
-    printf("Makernote tag: %d type: %d count: %d offset: %d\n", tag_id, tag_type, tag_count, tag_offset);
+  u_int tag_id, tag_type, tag_count;
+  off_t tag_data_offset, tag_offset;
+  get_tag_header(raw_image_file_base, &tag_id, &tag_type, &tag_count, &tag_offset);
+  printf("tag: %d type: %d count: %d offset: %d\n", tag_id, tag_type, tag_count, tag_offset);
+  tag_data_offset = get_tag_data_offset(raw_image_file_base, tag_type, tag_count);  
   
-  
-    file.seekg(tag_offset, std::ios::beg);
+  double test;
+  file.seekg(tag_data_offset, std::ios::beg); // Jump to data offset
+  switch (tag_id) {
+    case 0x0002:  // ISO
+      if (!raw_image_file.exif.iso_sensitivity) {
+        raw_image_file.exif.iso_sensitivity = (read_2_bytes_unsigned(file, raw_image_file.bitorder), read_2_bytes_unsigned(file, raw_image_file.bitorder));
+        printf("Makernote ISO Sens: %d\n", raw_image_file.exif.iso_sensitivity);
+      }
+      break;
+    case 0x000c:
+      for (int i = 0; i < 3; ++i) {
+        test = get_tag_value(tag_type);
+        printf("Makernote cam_mul: %lf\n", test);
+      }
+    
+    default:
+      break;
   }
+
+  file.seekg(tag_offset, std::ios::beg);
 }
 
 bool RawImageData :: parse_gps_data(off_t raw_image_file_base) {
@@ -390,12 +413,11 @@ bool RawImageData :: parse_gps_data(off_t raw_image_file_base) {
 
 bool RawImageData :: parse_time_stamp() {
   // Proper date time format: " YYYY:MM:DD HH:MM:SS"
-  char time_str[20];
-  file.read(time_str, 20);
+  file.read(raw_image_file.exif.date_time_str, 20);
 
   struct tm t;
   memset(&t, 0, sizeof(t));
-  if (sscanf(time_str, "%d:%d:%d %d:%d:%d",
+  if (sscanf(raw_image_file.exif.date_time_str, "%d:%d:%d %d:%d:%d",
   &t.tm_year, &t.tm_mon, &t.tm_mday, 
   &t.tm_hour, &t.tm_min, &t.tm_sec) != 6) return false;
 
@@ -404,14 +426,14 @@ bool RawImageData :: parse_time_stamp() {
   t.tm_isdst = -1;
 
   if (mktime(&t) > 0) {
-    raw_image_file.time_stamp = mktime(&t);
+    raw_image_file.exif.date_time = mktime(&t);
   }
 
   return true;
 }
 
 off_t RawImageData :: get_tag_data_offset(off_t raw_image_file_base, u_int tag_type, u_int tag_count) {
-  u_int type_byte = 1;
+  u_int type_byte = 0;
   switch (tag_type) {
     case 1:   type_byte = static_cast<u_int>(Raw_Tag_Type_Bytes::BYTE);     break;
     case 2:   type_byte = static_cast<u_int>(Raw_Tag_Type_Bytes::ASCII);    break;
@@ -429,7 +451,7 @@ off_t RawImageData :: get_tag_data_offset(off_t raw_image_file_base, u_int tag_t
     default: type_byte = 1; break;
   }
   if (type_byte * tag_count > 4) {
-    return read_4_bytes_unsigned(file, raw_image_file.bitorder) + raw_image_file_base;
+    return read_4_bytes_unsigned(file, raw_image_file.bitorder) + raw_image_file_base;;
   }
   return file.tellg();
 }
@@ -494,20 +516,18 @@ void RawImageData :: print_data() {
   printf("Bit ordering: 0x%x\n", raw_image_file.bitorder);
   printf("Version: %d\n", raw_image_file.version);
   printf("File size: %.2lfMB\n", (float)raw_image_file.file_size / 1000000);
-  printf("Make: %s\n", raw_image_file.make);
-  printf("Model: %s\n", raw_image_file.model);
-  printf("Software: %s\n", raw_image_file.software);
-  printf("Artist: %s\n", raw_image_file.artist);
-  printf("Copyright: %s\n", raw_image_file.copyright);
 
   printf("\n================EXIF DATA===============\n");
   printf("Camera Make: %s\n", raw_image_file.exif.camera_make);
   printf("Camera Model: %s\n", raw_image_file.exif.camera_model);
-  printf("Date time: %d\n", raw_image_file.exif.date_time);
+  printf("Software: %s\n", raw_image_file.exif.software);
   printf("Exposure: %lf\n", raw_image_file.exif.exposure);
   printf("F Number: %lf\n", raw_image_file.exif.f_number);
-  printf("ISO Sensitivity: %d\n", raw_image_file.exif.iso_sensitivity);
+  printf("ISO Sensitivity: %lf\n", raw_image_file.exif.iso_sensitivity);
   printf("Lens Model: %s\n", raw_image_file.exif.lens_model);
+  printf("Artist: %s\n", raw_image_file.exif.artist);
+  printf("Copyright: %s\n", raw_image_file.exif.copyright);
+  printf("Date time: %s\n", raw_image_file.exif.date_time_str);
 
   printf("\n================RAW TIFF IFDs===============\n");
   for (u_int i = 0; i < 8; ++i) {
