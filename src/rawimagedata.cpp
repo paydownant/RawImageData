@@ -122,7 +122,11 @@ void RawImageData :: parse_raw_image_tag(off_t raw_image_file_base, u_int ifd) {
       raw_image_file.raw_image_ifd[ifd].height = get_tag_value(tag_type);
       break;
     case 258: case 4:   // BitsPerSample
+      raw_image_file.raw_image_ifd[ifd].sample_pixel = tag_count;
       raw_image_file.raw_image_ifd[ifd].bps = get_tag_value(tag_type);
+      if (raw_image_file.tiff_bps < raw_image_file.raw_image_ifd[ifd].bps) {
+        raw_image_file.tiff_bps = raw_image_file.raw_image_ifd[ifd].bps;
+      }
       break;
     case 259: case 5:   // Compression
       raw_image_file.raw_image_ifd[ifd].compression = get_tag_value(tag_type);
@@ -137,7 +141,7 @@ void RawImageData :: parse_raw_image_tag(off_t raw_image_file_base, u_int ifd) {
       file.read(raw_image_file.exif.camera_model, 64);
       break;
     case 273: case 19:  // StripOffsets
-      raw_image_file.raw_image_ifd[ifd].strip_offset = get_tag_value(tag_type) + raw_image_file_base;
+      raw_image_file.raw_image_ifd[ifd].offset = get_tag_value(tag_type) + raw_image_file_base;
       parse_strip_data(raw_image_file_base, ifd);
       break;
     case 274: case 20:  // Orientation
@@ -197,7 +201,7 @@ void RawImageData :: parse_raw_image_tag(off_t raw_image_file_base, u_int ifd) {
       }
       break;
     case 513:           // JPEGInterchangeFormat
-      raw_image_file.raw_image_ifd[ifd].strip_offset = get_tag_value(tag_type) + raw_image_file_base;
+      raw_image_file.raw_image_ifd[ifd].offset = get_tag_value(tag_type) + raw_image_file_base;
       parse_strip_data(raw_image_file_base, ifd);
       break;
     case 514:           // JPEGInterchangeFormatLength
@@ -219,10 +223,14 @@ void RawImageData :: parse_raw_image_tag(off_t raw_image_file_base, u_int ifd) {
       file.read(raw_image_file.exif.copyright, 64);
       break;
     case 33434:         // ExposureTime
-      raw_image_file.exif.exposure = get_tag_value(tag_type);
+      if (!raw_image_file.exif.exposure) {
+        raw_image_file.exif.exposure = get_tag_value(tag_type);
+      }
       break;
     case 33437:         // FNumber
-      raw_image_file.exif.f_number = get_tag_value(tag_type);
+      if (!raw_image_file.exif.f_number) {
+        raw_image_file.exif.f_number = get_tag_value(tag_type);
+      }
       break;
     case 34665:         // Exif IFD
       raw_image_file.exif_offset = get_tag_value(tag_type) + raw_image_file_base;
@@ -245,10 +253,10 @@ void RawImageData :: parse_raw_image_tag(off_t raw_image_file_base, u_int ifd) {
 
 bool RawImageData :: parse_strip_data(off_t raw_image_file_base, u_int ifd) {
   jpeg_info_t jpeg_info;
-  if (raw_image_file.raw_image_ifd[ifd].bps || raw_image_file.raw_image_ifd[ifd].strip_offset == 0) {
+  if (raw_image_file.raw_image_ifd[ifd].bps || raw_image_file.raw_image_ifd[ifd].offset == 0) {
     return false;
   }
-  file.seekg(raw_image_file.raw_image_ifd[ifd].strip_offset, std::ios::beg);
+  file.seekg(raw_image_file.raw_image_ifd[ifd].offset, std::ios::beg);
   if (parse_jpeg_info(file, &jpeg_info, true)) {
     // print_jpeg_info(&jpeg_info);
     raw_image_file.raw_image_ifd[ifd].compression = 6;
@@ -257,7 +265,7 @@ bool RawImageData :: parse_strip_data(off_t raw_image_file_base, u_int ifd) {
     raw_image_file.raw_image_ifd[ifd].bps = jpeg_info.precision;
     raw_image_file.raw_image_ifd[ifd].sample_pixel = jpeg_info.components;
 
-    parse_raw_image(raw_image_file.raw_image_ifd[ifd].strip_offset + 12);
+    parse_raw_image(raw_image_file.raw_image_ifd[ifd].offset + 12);
   }
   return true;
 }
@@ -275,15 +283,21 @@ bool RawImageData :: parse_exif_data(off_t raw_image_file_base) {
 
     switch (tag_id) {
       case 0x829a:  // ExposureTime
-        raw_image_file.exif.exposure = get_tag_value(tag_type);
+        if (raw_image_file.exif.exposure) {
+          raw_image_file.exif.exposure = get_tag_value(tag_type);
+        }
         break;
       case 0x829d:  // FNumber
-        raw_image_file.exif.f_number = get_tag_value(tag_type);
+        if (raw_image_file.exif.f_number) {
+          raw_image_file.exif.f_number = get_tag_value(tag_type);
+        }
         break;
       case 0x8822:  // ExposureProgram
         break;
       case 0x8827:  // ISO
-        raw_image_file.exif.iso_sensitivity = get_tag_value(tag_type);
+        if (raw_image_file.exif.iso_sensitivity) {
+          raw_image_file.exif.iso_sensitivity = get_tag_value(tag_type);
+        }
         break;
       case 0x8833:  // ISOSpeed
       case 0x8834:  // ISOSpeedLatitudeyyy
@@ -296,10 +310,14 @@ bool RawImageData :: parse_exif_data(off_t raw_image_file_base) {
         }
         break;
       case 0x9202:  // ApertureValue
-        raw_image_file.exif.f_number = pow(2, get_tag_value(tag_type) / 2);
+        if (!raw_image_file.exif.f_number) {
+          raw_image_file.exif.f_number = pow(2, get_tag_value(tag_type) / 2);
+        }
         break;
       case 0x920a:  // FocalLength
-        raw_image_file.exif.focal_length = get_tag_value(tag_type);
+        if (!raw_image_file.exif.focal_length) {
+          raw_image_file.exif.focal_length = get_tag_value(tag_type);
+        }
         break;
       case 0x927c:  // MakerNote
         parse_makernote(raw_image_file_base, 0);
@@ -346,37 +364,88 @@ bool RawImageData :: parse_makernote(off_t raw_image_file_base, int uptag) {
 
   for (u_int i = 0; i < n_tag_entries; ++i) {
     if (!strncasecmp(maker_magic, "Nikon", 6)) {
-      parse_markernote_tag_nikon(base, uptag, bitorder);
+      raw_image_file.bitorder = bitorder;
+      parse_markernote_tag_nikon(base, uptag);
     }
   }
 
   return true;
 }
 
-void RawImageData :: parse_markernote_tag_nikon(off_t raw_image_file_base, int uptag, u_int16_t bitorder) {
-  raw_image_file.bitorder = bitorder;
-
+/*
+ * https://exiv2.org/tags-nikon.html
+ */
+void RawImageData :: parse_markernote_tag_nikon(off_t raw_image_file_base, int uptag) {
   u_int tag_id, tag_type, tag_count;
   off_t tag_data_offset, tag_offset;
   get_tag_header(raw_image_file_base, &tag_id, &tag_type, &tag_count, &tag_offset);
-  printf("tag: %d type: %d count: %d offset: %d\n", tag_id, tag_type, tag_count, tag_offset);
+  printf("Makernote tag: %d type: %d count: %d offset: %d\n", tag_id, tag_type, tag_count, tag_offset);
   tag_data_offset = get_tag_data_offset(raw_image_file_base, tag_type, tag_count);  
   
-  double test;
+  char buffer[10] = { 0 };
+  u_int c, serial = 0;
   file.seekg(tag_data_offset, std::ios::beg); // Jump to data offset
   switch (tag_id) {
-    case 0x0002:  // ISO
+    case 0x0002:  // Exif.Nikon3.ISOSpeed 
       if (!raw_image_file.exif.iso_sensitivity) {
-        raw_image_file.exif.iso_sensitivity = (read_2_bytes_unsigned(file, raw_image_file.bitorder), read_2_bytes_unsigned(file, raw_image_file.bitorder));
-        printf("Makernote ISO Sens: %d\n", raw_image_file.exif.iso_sensitivity);
+        raw_image_file.exif.iso_sensitivity = get_tag_value(tag_type);
+        printf("Makernote ISO Sens: %lf\n", raw_image_file.exif.iso_sensitivity);
       }
       break;
-    case 0x000c:
-      for (int i = 0; i < 3; ++i) {
-        test = get_tag_value(tag_type);
-        printf("Makernote cam_mul: %lf\n", test);
+    case 0x0004:  // Exif.Nikon3.Quality
+      break;
+    case 0x000b:  // Exif.Nikon3.WhiteBalanceBias
+      break;
+    case 0x000c:  // Exif.Nikon3.WB_RBLevels (RBG-)
+      raw_image_file.white_balance_multi_cam.r = get_tag_value(tag_type);
+      raw_image_file.white_balance_multi_cam.b = get_tag_value(tag_type);
+      raw_image_file.white_balance_multi_cam.g = get_tag_value(tag_type);
+      break;
+    case 0x000d:  // Exif.Nikon3.ProgramShift
+      break;
+    case 0x000e:  // Exif.Nikon NRW WB_RBLevels
+      file.read(buffer, 10);
+      if (!strncasecmp(buffer, "NRW", 4)) {
+        printf("Nikon NRW WB RB Level\n");
+        file.seekg(strcmp(buffer + 4, "0100") ? 46 : 1546, std::ios::cur);
+        raw_image_file.white_balance_multi_cam.r = read_4_bytes_unsigned(file, raw_image_file.bitorder) << 2;
+        raw_image_file.white_balance_multi_cam.g = read_4_bytes_unsigned(file, raw_image_file.bitorder) + read_4_bytes_unsigned(file, raw_image_file.bitorder);
+        raw_image_file.white_balance_multi_cam.b = read_4_bytes_unsigned(file, raw_image_file.bitorder) << 2;
       }
-    
+      break;
+    case 0x0011:  // Exif.Nikon3.Preview
+      file.seekg(get_tag_value(tag_type) + raw_image_file_base, std::ios::beg);
+      printf("Parse makernote offset: %d\n", file.tellg());
+      parse_raw_image_ifd(raw_image_file_base);
+      break;
+    case 0x001d:  // Exif.Nikon3.SerialNumber
+      while ((c = file.get()) && c != EOF) {
+        if (isdigit(c)) {
+          serial = serial * 10 + (c - '0');
+        } else {
+          serial = serial * 10 + (c % 10);
+        }
+      }
+      printf("Serial: %d\n", serial);
+      break;
+    case 0x003d:  // Exif.Nikon3.CBlack
+      if (tag_type == 3 && tag_count == 4) {
+        raw_image_file.cblack.r = (u_int)get_tag_value(tag_type) >> (14 - raw_image_file.tiff_bps);
+        raw_image_file.cblack.g_r = (u_int)get_tag_value(tag_type) >> (14 - raw_image_file.tiff_bps);
+        raw_image_file.cblack.b = (u_int)get_tag_value(tag_type) >> (14 - raw_image_file.tiff_bps);
+        raw_image_file.cblack.g_b = (u_int)get_tag_value(tag_type) >> (14 - raw_image_file.tiff_bps);
+      }
+      break;
+    case 0x008c:  // Exif.Nikon3.ContrastCurve
+    case 0x0096:  // Exif.Nikon3.LinearizationTable
+      raw_image_file.meta_offset = file.tellg();
+      printf("Meta Offset: %d\n", raw_image_file.meta_offset);
+      break;
+    case 0x0097:  // Exif.Nikon3.ColorBalance
+      for (u_int i = 0; i < 4; ++i) {
+
+      }
+      break;
     default:
       break;
   }
@@ -517,6 +586,9 @@ void RawImageData :: print_data() {
   printf("Version: %d\n", raw_image_file.version);
   printf("File size: %.2lfMB\n", (float)raw_image_file.file_size / 1000000);
 
+  printf("Camera White Balance Multiplier (RGB): %lf %lf %lf\n", raw_image_file.white_balance_multi_cam.r, raw_image_file.white_balance_multi_cam.g, raw_image_file.white_balance_multi_cam.b);
+  printf("Cblack (RGGB): %d %d %d %d\n", raw_image_file.cblack.r, raw_image_file.cblack.g_r, raw_image_file.cblack.g_b, raw_image_file.cblack.b);
+
   printf("\n================EXIF DATA===============\n");
   printf("Camera Make: %s\n", raw_image_file.exif.camera_make);
   printf("Camera Model: %s\n", raw_image_file.exif.camera_model);
@@ -540,7 +612,7 @@ void RawImageData :: print_data() {
       printf("Compression: %d\n", raw_image_file.raw_image_ifd[i].compression);
       printf("P Interpret: %d\n", raw_image_file.raw_image_ifd[i].pinterpret);
       printf("Orientation: %d\n", raw_image_file.raw_image_ifd[i].orientation);
-      printf("Strip Offset: %d\n", raw_image_file.raw_image_ifd[i].strip_offset);
+      printf("Offset: %d\n", raw_image_file.raw_image_ifd[i].offset);
       printf("Tile Offset: %d\n", raw_image_file.raw_image_ifd[i].tile_offset);
       printf("\n");
     }

@@ -21,13 +21,27 @@ private:
   std::string file_path;
   std::ifstream file;
 
+  struct rgba_t {
+    double r = 0;
+    double g = 0;
+    double b = 0;
+    double alpha = 0;
+  };
+
+  struct rggb_t {
+    u_int r = 0;
+    u_int g_r = 0;
+    u_int g_b = 0;
+    u_int b = 0;
+  };
+
   struct raw_image_ifd_t {
     u_int n_tag_entries = 0;
-    int width = 0, height = 0, bps = 0, compression = 0, pinterpret = 0, orientation = 0;
+    int width = 0, height = 0, bps = 0, compression = 0, pinterpret = 0, sample_pixel = 0, orientation = 0;
     double x_res = 0, y_res = 0;
     int planar_config = 0;
-    off_t strip_offset = 0, tile_offset = 0;
-    int sample_pixel = 0, strip_byte_counts = 0, rows_per_strip = 0, jpeg_if_length = 0;
+    off_t offset = 0, tile_offset = 0;
+    int strip_byte_counts = 0, rows_per_strip = 0, jpeg_if_length = 0;
     int tile_width = 0, tile_length = 0;
 
     bool set = false;
@@ -69,9 +83,16 @@ private:
     u_int raw_ifd_count = 0;   // Number of IFD
     int file_size = 0;         // File size
 
+    off_t strip_offset;
+    off_t meta_offset;
+
     off_t exif_offset = 0;
     exif_t exif;
     raw_image_ifd_t raw_image_ifd[8];
+
+    u_int tiff_bps;
+    rgba_t white_balance_multi_cam;
+    rggb_t cblack;
 
   } raw_image_file;
 
@@ -111,7 +132,7 @@ private:
   bool parse_exif_data(off_t raw_image_file_base);
   bool parse_strip_data(off_t raw_image_file_base, u_int ifd);
   bool parse_makernote(off_t raw_image_file_base, int uptag);
-  void parse_markernote_tag_nikon(off_t raw_image_file_base, int uptag, u_int16_t bitorder);
+  void parse_markernote_tag_nikon(off_t raw_image_file_base, int uptag);
   bool parse_gps_data(off_t raw_image_file_base);
   bool parse_time_stamp();
 
