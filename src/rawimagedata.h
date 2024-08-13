@@ -56,6 +56,7 @@ protected:
 
     lens_t lens_info;
 
+    u_int image_count = 0;
     u_int shutter_count = 0;
 
     char artist[64] = { 0 };

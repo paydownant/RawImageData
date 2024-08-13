@@ -141,10 +141,14 @@ void RawImageData :: parse_raw_image_tag(off_t raw_image_file_base, u_int ifd) {
       raw_image_file.raw_image_ifd[ifd].pinterpret = get_tag_value(tag_type);
       break;
     case 271: case 17:  // Make
-      file.read(raw_image_file.exif.camera_make, 64);
+      if (!raw_image_file.exif.camera_make[0]) {
+        file.read(raw_image_file.exif.camera_make, 64);
+      }
       break;
     case 272: case 18:  // Model
-      file.read(raw_image_file.exif.camera_model, 64);
+      if (!raw_image_file.exif.camera_model[0]) {
+        file.read(raw_image_file.exif.camera_model, 64);
+      }
       break;
     case 273: case 19:  // StripOffsets
       raw_image_file.raw_image_ifd[ifd].offset = get_tag_value(tag_type) + raw_image_file_base;
@@ -174,13 +178,17 @@ void RawImageData :: parse_raw_image_tag(off_t raw_image_file_base, u_int ifd) {
     case 296: case 42:  // ResolutionUnit
       break;
     case 305: case 51:  // Software
-      file.read(raw_image_file.exif.software, 64);
+      if (!raw_image_file.exif.software[0]) {
+        file.read(raw_image_file.exif.software, 64);
+      }
       break;
     case 306: case 52:  // DateTime
       parse_time_stamp();
       break;
     case 315: case 61:  // Artist
-      file.read(raw_image_file.exif.artist, 64);
+      if (!raw_image_file.exif.artist[0]) {
+        file.read(raw_image_file.exif.artist, 64);
+      }
       break;
     case 320: case 66:  // ColorMap
       break;
@@ -226,7 +234,10 @@ void RawImageData :: parse_raw_image_tag(off_t raw_image_file_base, u_int ifd) {
     case 33422:         // CFAPattern
       break;
     case 33432:         // Copyright
-      file.read(raw_image_file.exif.copyright, 64);
+      if (!raw_image_file.exif.copyright[0]) {
+        printf("Read copyright\n");
+        file.read(raw_image_file.exif.copyright, 64);
+      }
       break;
     case 33434:         // ExposureTime
       if (!raw_image_file.exif.exposure) {
@@ -249,6 +260,25 @@ void RawImageData :: parse_raw_image_tag(off_t raw_image_file_base, u_int ifd) {
     case 34853:         // GPSInfo / GPS IFD
       raw_image_file.exif.gps_offset = get_tag_value(tag_type) + raw_image_file_base;
       parse_gps_data(raw_image_file_base);
+      break;
+    case 37386:         // FocalLength
+      if (!raw_image_file.exif.focal_length) {
+        raw_image_file.exif.focal_length = get_tag_value(tag_type);
+        printf("Focal Length: %lf\n", raw_image_file.exif.focal_length);
+      }
+      break;
+    case 37393:         // ImageNumber
+      if (!raw_image_file.exif.image_count) {
+        raw_image_file.exif.image_count = get_tag_value(tag_type);
+      }
+    case 46274:
+      break;
+    case 50706:         // DNGVersion
+
+      break;
+    case 50831:         // AsShotICCProfile
+      raw_image_file.exif.icc_profile_offset = file.tellg();
+      raw_image_file.exif.icc_profile_count = tag_count;
       break;
     
     default:

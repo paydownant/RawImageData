@@ -106,8 +106,15 @@ void RawImageData_Nikon :: parse_markernote_tag(off_t raw_image_file_base, int u
       n = std::stoi(buffer, 0, 10);
       printf("Colour balance ver: %d\n", n);
       break;
+    case 0x00a5:  // Exif.Nikon3.ImageCount
+      if (!raw_image_file.exif.image_count) {
+        raw_image_file.exif.image_count = get_tag_value(tag_type);
+      }
+      break;
     case 0x00a7:  // Exif.Nikon3.ShutterCount
-      raw_image_file.exif.shutter_count = get_tag_value(tag_type);
+      if (!raw_image_file.exif.shutter_count) {
+        raw_image_file.exif.shutter_count = get_tag_value(tag_type);
+      }
       break;
     default:
       break;
