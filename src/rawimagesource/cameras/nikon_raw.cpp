@@ -1,23 +1,25 @@
 
-#include "rawimagedata_nikon.h"
+#include "nikon_raw.h"
 
-RawImageData_Nikon :: RawImageData_Nikon(const std::string& filepath) : RawImageData(filepath) {}
+NikonRaw :: NikonRaw(const std::string& filepath) : RawImageData(filepath) {}
 
-bool RawImageData_Nikon :: parse_makernote(off_t raw_image_file_base, int uptag) {
+bool NikonRaw :: parse_makernote(off_t raw_image_file_base, int uptag) {
+  
   char maker_magic[10];
   off_t base, offset;
+  
   file.read(maker_magic, 10);
-
-  if (!strncasecmp(maker_magic, "Nikon", 6)) {
-    base = file.tellg();
-    raw_image_file.bitorder = read_2_bytes_unsigned(file, raw_image_file.bitorder);
-    read_2_bytes_unsigned(file, raw_image_file.bitorder);
-    offset = read_4_bytes_unsigned(file, raw_image_file.bitorder);
-    if (offset != 8) {
-      return false;
-    }
-  } else {
-    fprintf(stderr, "ERROR: Currently Only Supports Nikon Raw");
+  if (strncasecmp(maker_magic, "Nikon", 6)) {
+    fprintf(stderr, "ERROR: Makernote Conflict: %s, was given %s\n", raw_image_file.exif.camera_make, maker_magic);
+    return false;
+  }
+  
+  base = file.tellg();
+  raw_image_file.bitorder = read_2_bytes_unsigned(file, raw_image_file.bitorder);
+  read_2_bytes_unsigned(file, raw_image_file.bitorder);
+  offset = read_4_bytes_unsigned(file, raw_image_file.bitorder);
+  if (offset != 8) {
+    return false;
   }
 
   u_int n_tag_entries;
@@ -27,10 +29,8 @@ bool RawImageData_Nikon :: parse_makernote(off_t raw_image_file_base, int uptag)
   n_tag_entries = read_2_bytes_unsigned(file, raw_image_file.bitorder);
 
   for (u_int i = 0; i < n_tag_entries; ++i) {
-    if (!strncasecmp(maker_magic, "Nikon", 6)) {
-      raw_image_file.bitorder = bitorder;
-      parse_markernote_tag(base, uptag);
-    }
+    raw_image_file.bitorder = bitorder;
+    parse_markernote_tag(base, uptag);
   }
 
   return true;
@@ -39,7 +39,7 @@ bool RawImageData_Nikon :: parse_makernote(off_t raw_image_file_base, int uptag)
 /*
  * https://exiv2.org/tags-nikon.html
  */
-void RawImageData_Nikon :: parse_markernote_tag(off_t raw_image_file_base, int uptag) {
+void NikonRaw :: parse_markernote_tag(off_t raw_image_file_base, int uptag) {
   u_int tag_id, tag_type, tag_count;
   off_t tag_data_offset, tag_offset;
   get_tag_header(raw_image_file_base, &tag_id, &tag_type, &tag_count, &tag_offset);

@@ -274,7 +274,7 @@ void RawImageData :: parse_raw_image_tag(off_t raw_image_file_base, u_int ifd) {
     case 46274:
       break;
     case 50706:         // DNGVersion
-
+      // DNG
       break;
     case 50831:         // AsShotICCProfile
       raw_image_file.exif.icc_profile_offset = file.tellg();
