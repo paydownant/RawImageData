@@ -6,15 +6,21 @@ RawImageData :: RawImageData(const std::string& file_path) : file_path(file_path
     throw std::runtime_error("Unable to open file: " + file_path);
   }
 
+  
+}
+
+RawImageData :: ~RawImageData() {
+  
+}
+
+bool RawImageData :: load_raw() {
   raw_identify();
   if (parse_raw(raw_image_file.base)) {
     print_data();
     // apply raw frame (tiff)
   }
-}
 
-RawImageData :: ~RawImageData() {
-  
+  return true;
 }
 
 bool RawImageData :: raw_identify() {

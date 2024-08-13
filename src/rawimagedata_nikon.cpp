@@ -3,7 +3,7 @@
 
 RawImageData_Nikon :: RawImageData_Nikon(const std::string& filepath) : RawImageData(filepath) {}
 
-bool RawImageData_Nikon :: parse_makernote(off_t raw_image_file_base, int uptag) const {
+bool RawImageData_Nikon :: parse_makernote(off_t raw_image_file_base, int uptag) {
   char maker_magic[10];
   off_t base, offset;
   file.read(maker_magic, 10);
@@ -39,7 +39,7 @@ bool RawImageData_Nikon :: parse_makernote(off_t raw_image_file_base, int uptag)
 /*
  * https://exiv2.org/tags-nikon.html
  */
-void RawImageData_Nikon :: parse_markernote_tag(off_t raw_image_file_base, int uptag) const {
+void RawImageData_Nikon :: parse_markernote_tag(off_t raw_image_file_base, int uptag) {
   u_int tag_id, tag_type, tag_count;
   off_t tag_data_offset, tag_offset;
   get_tag_header(raw_image_file_base, &tag_id, &tag_type, &tag_count, &tag_offset);
