@@ -42,9 +42,10 @@ bool RawImageData :: parse_raw(off_t raw_image_file_base) {
   // reset ifd count
   raw_image_file.raw_ifd_count = 0; // fails since it shouldn't be 0 unless its the first call (in case of recursion)
   memset(raw_image_file.raw_image_ifd, 0, sizeof(raw_image_file.raw_image_ifd));
-
   file.seekg(0, std::ios::beg);
-  parse_raw_image(raw_image_file_base);
+  if (!parse_raw_image(raw_image_file_base)) {
+    return false;
+  }
 
   return true;
 }
