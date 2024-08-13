@@ -2,6 +2,7 @@
 #include "nikon_raw.h"
 
 NikonRaw :: NikonRaw(const std::string& filepath) : RawImageData(filepath) {}
+NikonRaw :: ~NikonRaw(){}
 
 bool NikonRaw :: parse_makernote(off_t raw_image_file_base, int uptag) {
   

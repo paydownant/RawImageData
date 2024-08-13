@@ -5,13 +5,9 @@ RawImageData :: RawImageData(const std::string& file_path) : file_path(file_path
   if (!file) {
     throw std::runtime_error("Unable to open file: " + file_path);
   }
-
-  
 }
 
-RawImageData :: ~RawImageData() {
-  
-}
+RawImageData :: ~RawImageData() {}
 
 bool RawImageData :: load_raw() {
   raw_identify();
