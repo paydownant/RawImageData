@@ -346,7 +346,13 @@ bool RawImageData :: parse_exif_data(off_t raw_image_file_base) {
   return true;
 }
 
+bool RawImageData :: parse_makernote(off_t raw_image_file_base, int uptag) {
+  return false;
+}
 
+void RawImageData :: parse_markernote_tag(off_t raw_image_file_base, int uptag) {
+  return;
+}
 
 bool RawImageData :: parse_gps_data(off_t raw_image_file_base) {
   u_int n_tag_entries, tag_id, tag_type, tag_count;
