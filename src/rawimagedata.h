@@ -1,5 +1,6 @@
 
 #include <iostream>
+#include <string>
 #include <fstream>
 #include <vector>
 #include <cstdint>
@@ -21,7 +22,7 @@ private:
   std::string file_path;
   std::ifstream file;
 
-  struct rgba_t {
+  struct white_balance_multiplier_t {
     double r = 0;
     double g = 0;
     double b = 0;
@@ -35,16 +36,13 @@ private:
     u_int b = 0;
   };
 
-  struct raw_image_ifd_t {
-    u_int n_tag_entries = 0;
-    int width = 0, height = 0, bps = 0, compression = 0, pinterpret = 0, sample_pixel = 0, orientation = 0;
-    double x_res = 0, y_res = 0;
-    int planar_config = 0;
-    off_t offset = 0, tile_offset = 0;
-    int strip_byte_counts = 0, rows_per_strip = 0, jpeg_if_length = 0;
-    int tile_width = 0, tile_length = 0;
-
-    bool set = false;
+  struct lens_t {
+    char lens_model[64] = { 0 };
+    u_short lens_type = 0;
+    double min_focal_length = 0;
+    double max_focal_length = 0;
+    double min_f_number = 0;
+    double max_f_number = 0;
   };
 
   struct exif_t {
@@ -57,7 +55,9 @@ private:
     double f_number = 0;
     double iso_sensitivity = 0;
 
-    char lens_model[64] = { 0 };
+    lens_t lens_info;
+
+    u_int shutter_count = 0;
 
     char artist[64] = { 0 };
     char copyright[64] = { 0 };
@@ -73,6 +73,20 @@ private:
     double gps_latitude = 0;
     char gps_longitude_reference = 0;
     double gps_longitude = 0;
+
+    u_int cfa = 0;
+  };
+
+  struct raw_image_ifd_t {
+    u_int n_tag_entries = 0;
+    int width = 0, height = 0, bps = 0, compression = 0, pinterpret = 0, sample_pixel = 0, orientation = 0;
+    double x_res = 0, y_res = 0;
+    int planar_config = 0;
+    off_t offset = 0, tile_offset = 0;
+    int strip_byte_counts = 0, rows_per_strip = 0, jpeg_if_length = 0;
+    int tile_width = 0, tile_length = 0;
+
+    bool set = false;
   };
 
   struct raw_image_file_t {
@@ -90,8 +104,9 @@ private:
     exif_t exif;
     raw_image_ifd_t raw_image_ifd[8];
 
-    u_int tiff_bps;
-    rgba_t white_balance_multi_cam;
+    u_int tiff_bps = 0;
+
+    white_balance_multiplier_t white_balance_multi_cam;
     rggb_t cblack;
 
   } raw_image_file;
@@ -132,7 +147,7 @@ private:
   bool parse_exif_data(off_t raw_image_file_base);
   bool parse_strip_data(off_t raw_image_file_base, u_int ifd);
   bool parse_makernote(off_t raw_image_file_base, int uptag);
-  void parse_markernote_tag_nikon(off_t raw_image_file_base, int uptag);
+  void parse_markernote_tag(off_t raw_image_file_base, int uptag);
   bool parse_gps_data(off_t raw_image_file_base);
   bool parse_time_stamp();
 
