@@ -110,6 +110,8 @@ protected:
 
   } raw_image_file;
 
+private:
+  /* Private Variables */
   enum class Raw_Tag_Type_Bytes {
     BYTE = 1,
     ASCII = 1,
@@ -125,7 +127,8 @@ protected:
     DOUBLE = 8
   };
 
-  // Constants
+  const u_int BIT_MASK = 0x01010101;
+
   //static constexpr unsigned raw_tag_type_bytes[14] = {1,1,1,2,4,8,1,1,2,4,8,4,8,4};
   
 
@@ -136,6 +139,8 @@ public:
 
   bool load_raw();
 
+protected:
+  /* Protected Functions */
   bool raw_identify();
 
   bool parse_raw(off_t raw_image_file_base);
@@ -155,6 +160,6 @@ public:
   void get_tag_header(off_t raw_image_file_base, u_int *tag_id, u_int *tag_type, u_int *tag_count, off_t *tag_offset);
   double get_tag_value(u_int tag_type);
 
-  void print_data();
+  void print_data(bool rawFileData, bool exifData, bool rawTiffIfds);
 
 };

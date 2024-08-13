@@ -16,7 +16,7 @@ RawImageData :: ~RawImageData() {
 bool RawImageData :: load_raw() {
   raw_identify();
   if (parse_raw(raw_image_file.base)) {
-    print_data();
+    print_data(true, true, false);
     // apply raw frame (tiff)
   }
 
@@ -290,19 +290,19 @@ bool RawImageData :: parse_exif_data(off_t raw_image_file_base) {
 
     switch (tag_id) {
       case 0x829a:  // ExposureTime
-        if (raw_image_file.exif.exposure) {
+        if (!raw_image_file.exif.exposure) {
           raw_image_file.exif.exposure = get_tag_value(tag_type);
         }
         break;
       case 0x829d:  // FNumber
-        if (raw_image_file.exif.f_number) {
+        if (!raw_image_file.exif.f_number) {
           raw_image_file.exif.f_number = get_tag_value(tag_type);
         }
         break;
       case 0x8822:  // ExposureProgram
         break;
       case 0x8827:  // ISO
-        if (raw_image_file.exif.iso_sensitivity) {
+        if (!raw_image_file.exif.iso_sensitivity) {
           raw_image_file.exif.iso_sensitivity = get_tag_value(tag_type);
         }
         break;
@@ -334,7 +334,8 @@ bool RawImageData :: parse_exif_data(off_t raw_image_file_base) {
       case 0xa302:  // CFAPattern
         if (read_4_bytes_unsigned(file, raw_image_file.bitorder) == 0x20002) {
           for (u_int i = 0; i < 8; i += 2) {
-            raw_image_file.exif.cfa = raw_image_file.exif.cfa | file.get() * 0x01010101 << i;
+            raw_image_file.exif.cfa = i;
+            raw_image_file.exif.cfa |= file.get() * BIT_MASK << i;
           }
         }
         break;
@@ -480,7 +481,8 @@ double RawImageData :: get_tag_value(u_int tag_type) {
 }
 
 
-void RawImageData :: print_data() {
+void RawImageData :: print_data(bool rawFileData, bool exifData, bool rawTiffIfds) {
+  if (!rawFileData) goto exif;
   printf("\n================RAW FILE DATA===============\n");
   printf("Base offset: %d\n", raw_image_file.base);
   printf("Bit ordering: 0x%x\n", raw_image_file.bitorder);
@@ -490,43 +492,50 @@ void RawImageData :: print_data() {
   printf("Camera White Balance Multiplier (RGB): %lf %lf %lf\n", raw_image_file.white_balance_multi_cam.r, raw_image_file.white_balance_multi_cam.g, raw_image_file.white_balance_multi_cam.b);
   printf("Cblack (RGGB): %d %d %d %d\n", raw_image_file.cblack.r, raw_image_file.cblack.g_r, raw_image_file.cblack.g_b, raw_image_file.cblack.b);
 
-  printf("\n================EXIF DATA===============\n");
-  printf("Camera Make: %s\n", raw_image_file.exif.camera_make);
-  printf("Camera Model: %s\n", raw_image_file.exif.camera_model);
-  printf("Software: %s\n", raw_image_file.exif.software);
+  exif:
+    if (!exifData) goto rawifd;
+    printf("\n================EXIF DATA===============\n");
+    printf("Camera Make: %s\n", raw_image_file.exif.camera_make);
+    printf("Camera Model: %s\n", raw_image_file.exif.camera_model);
+    printf("Software: %s\n", raw_image_file.exif.software);
   
-  printf("Focal Length: %lf", raw_image_file.exif.focal_length);
-  printf("Exposure: %lf\n", raw_image_file.exif.exposure);
-  printf("F Number: %lf\n", raw_image_file.exif.f_number);
-  printf("ISO Sensitivity: %lf\n", raw_image_file.exif.iso_sensitivity);
+    printf("Focal Length: %lf\n", raw_image_file.exif.focal_length);
+    printf("Exposure: %lf\n", raw_image_file.exif.exposure);
+    printf("F Number: %lf\n", raw_image_file.exif.f_number);
+    printf("ISO Sensitivity: %lf\n", raw_image_file.exif.iso_sensitivity);
   
-  printf("Lens Model: %s\n", raw_image_file.exif.lens_info.lens_model);
-  printf("Lens Type: %d\n", raw_image_file.exif.lens_info.lens_type);
-  printf("Lens Focal Length: Min %lf, Max %lf\n", raw_image_file.exif.lens_info.min_focal_length, raw_image_file.exif.lens_info.max_focal_length);
-  printf("Lens Aperture F: Min %lf, Max %lf\n", raw_image_file.exif.lens_info.min_f_number, raw_image_file.exif.lens_info.max_f_number);
+    printf("Lens Model: %s\n", raw_image_file.exif.lens_info.lens_model);
+    printf("Lens Type: %d\n", raw_image_file.exif.lens_info.lens_type);
+    printf("Lens Focal Length: Min %lf, Max %lf\n", raw_image_file.exif.lens_info.min_focal_length, raw_image_file.exif.lens_info.max_focal_length);
+    printf("Lens Aperture F: Min %lf, Max %lf\n", raw_image_file.exif.lens_info.min_f_number, raw_image_file.exif.lens_info.max_f_number);
 
-  printf("Shutter Count: %d\n", raw_image_file.exif.shutter_count);
+    printf("Shutter Count: %d\n", raw_image_file.exif.shutter_count);
 
-  printf("Artist: %s\n", raw_image_file.exif.artist);
-  printf("Copyright: %s\n", raw_image_file.exif.copyright);
-  printf("Date time: %s\n", raw_image_file.exif.date_time_str);
+    printf("Artist: %s\n", raw_image_file.exif.artist);
+    printf("Copyright: %s\n", raw_image_file.exif.copyright);
+    printf("Date time: %s\n", raw_image_file.exif.date_time_str);
 
-  printf("CFA Pattern: %d\n", raw_image_file.exif.cfa);
+    printf("CFA Pattern: %d\n", raw_image_file.exif.cfa);
 
-  printf("\n================RAW TIFF IFDs===============\n");
-  for (u_int i = 0; i < 8; ++i) {
-    if (raw_image_file.raw_image_ifd[i].set) {
-      printf("IFD: %d\n", i + 1);
-      printf("N Tag Entries: %d\n", raw_image_file.raw_image_ifd[i].n_tag_entries);
-      printf("Width: %d\n", raw_image_file.raw_image_ifd[i].width);
-      printf("Height: %d\n", raw_image_file.raw_image_ifd[i].height);
-      printf("BPS: %d\n", raw_image_file.raw_image_ifd[i].bps);
-      printf("Compression: %d\n", raw_image_file.raw_image_ifd[i].compression);
-      printf("P Interpret: %d\n", raw_image_file.raw_image_ifd[i].pinterpret);
-      printf("Orientation: %d\n", raw_image_file.raw_image_ifd[i].orientation);
-      printf("Offset: %d\n", raw_image_file.raw_image_ifd[i].offset);
-      printf("Tile Offset: %d\n", raw_image_file.raw_image_ifd[i].tile_offset);
-      printf("\n");
+  rawifd:
+    if (!rawTiffIfds) goto end;
+    printf("\n================RAW TIFF IFDs===============\n");
+    for (u_int i = 0; i < 8; ++i) {
+      if (raw_image_file.raw_image_ifd[i].set) {
+        printf("IFD: %d\n", i + 1);
+        printf("N Tag Entries: %d\n", raw_image_file.raw_image_ifd[i].n_tag_entries);
+        printf("Width: %d\n", raw_image_file.raw_image_ifd[i].width);
+        printf("Height: %d\n", raw_image_file.raw_image_ifd[i].height);
+        printf("BPS: %d\n", raw_image_file.raw_image_ifd[i].bps);
+        printf("Compression: %d\n", raw_image_file.raw_image_ifd[i].compression);
+        printf("P Interpret: %d\n", raw_image_file.raw_image_ifd[i].pinterpret);
+        printf("Orientation: %d\n", raw_image_file.raw_image_ifd[i].orientation);
+        printf("Offset: %d\n", raw_image_file.raw_image_ifd[i].offset);
+        printf("Tile Offset: %d\n", raw_image_file.raw_image_ifd[i].tile_offset);
+        printf("\n");
+      }
     }
-  }
+
+  end:
+    return;
 }
