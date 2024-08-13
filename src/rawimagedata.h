@@ -16,9 +16,6 @@ class RawImageData {
   
 public:
   /* Public Variables */
-
-private:
-  /* Private Variables */
   std::string file_path;
   std::ifstream file;
 
@@ -135,8 +132,6 @@ public:
   RawImageData(const std::string& file_path);
   ~RawImageData();
 
-private:
-  /* Private Functions */
   bool raw_identify();
 
   bool parse_raw(off_t raw_image_file_base);
@@ -146,8 +141,10 @@ private:
   void parse_raw_image_tag(off_t raw_image_file_base, u_int ifd);
   bool parse_exif_data(off_t raw_image_file_base);
   bool parse_strip_data(off_t raw_image_file_base, u_int ifd);
-  bool parse_makernote(off_t raw_image_file_base, int uptag);
-  void parse_markernote_tag(off_t raw_image_file_base, int uptag);
+
+  virtual bool parse_makernote(off_t raw_image_file_base, int uptag) const = 0;
+  virtual void parse_markernote_tag(off_t raw_image_file_base, int uptag) const = 0;
+  
   bool parse_gps_data(off_t raw_image_file_base);
   bool parse_time_stamp();
 

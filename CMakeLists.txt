@@ -7,4 +7,6 @@ add_executable(${PROJECT_NAME}
   src/rawimagedata.cpp
   src/rawimagedata_utils.cpp
   src/jpegimagedata.cpp
+
+  src/rawimagedata_nikon.cpp
 )
