@@ -78,6 +78,16 @@ bool RawImageData :: parse_raw_image(off_t raw_image_file_base) {
   return true;
 }
 
+bool RawImageData :: apply_raw_image() {
+  jpeg_info_t jpeg_info;
+  if (raw_image_file.thumb_offset) {
+    file.seekg(raw_image_file.thumb_offset, std::ios::beg);
+    if (parse_jpeg_info(file, &jpeg_info, true)) {
+      // got thumb info
+    }
+  }
+}
+
 bool RawImageData :: parse_raw_image_ifd(off_t raw_image_file_base) {
   u_int ifd;
   if (raw_image_file.raw_ifd_count >= sizeof(raw_image_file.raw_image_ifd) / sizeof(raw_image_file.raw_image_ifd[0])) {

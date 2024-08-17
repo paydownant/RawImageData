@@ -97,8 +97,10 @@ protected:
     u_int raw_ifd_count = 0;   // Number of IFD
     int file_size = 0;         // File size
 
-    off_t strip_offset;
-    off_t meta_offset;
+    off_t strip_offset = 0;
+
+    off_t thumb_offset = 0;
+    off_t meta_offset = 0;
 
     off_t exif_offset = 0;
     exif_t exif;
@@ -146,6 +148,7 @@ protected:
 
   bool parse_raw(off_t raw_image_file_base);
   bool parse_raw_image(off_t raw_image_file_base);
+  bool apply_raw_image();
   bool parse_raw_image_ifd(off_t raw_image_file_base);
   void parse_raw_image_tag(off_t raw_image_file_base, u_int ifd);
   bool parse_exif_data(off_t raw_image_file_base);
