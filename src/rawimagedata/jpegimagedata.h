@@ -1,3 +1,5 @@
+#ifndef JPEGIMAGEDATA_H
+#define JPEGIMAGEDATA_H
 
 #include <iostream>
 #include <fstream>
@@ -72,3 +74,5 @@ bool parse_dht(jpeg_info_t* jpeg_info, const u_char* data, const u_int marker, c
 bool parse_sos(jpeg_info_t* jpeg_info, const u_char* data, const u_int marker, const u_int length);
 bool parse_dri(jpeg_info_t* jpeg_info, const u_char* data, const u_int marker, const u_int length);
 void print_jpeg_info(jpeg_info_t* jpeg_info);
+
+#endif

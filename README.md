@@ -39,9 +39,20 @@ To use the Camera Raw File Parser, create an instance of the `RawImageData`'s ch
 ```cpp
 #include "rawimagedata/cameras/nikon_raw.h"
 
-int main() {
-  NikonRaw img("../path/to/rawimage.nef");
-  img.load_raw();
+int main(int argc, char** argv) {
+  RawImageData *img;
+  int index = 0;
+
+  if (index == 0) {
+    img = new NikonRaw("../sample_images/nikon/DSC_0498.NEF");
+  } else {
+    /* Some other child classes*/
+  }
+  
+  if (img != nullptr) {
+    img->load_raw();
+  }
+  
 }
 ```
 

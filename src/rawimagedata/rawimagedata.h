@@ -1,3 +1,5 @@
+#ifndef RAWIMAGEDATA_H
+#define RAWIMAGEDATA_H
 
 #include <iostream>
 #include <string>
@@ -189,3 +191,5 @@ protected:
   void print_data(bool rawFileData, bool exifData, bool rawTiffIfds);
 
 };
+
+#endif

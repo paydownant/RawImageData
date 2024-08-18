@@ -1,14 +1,14 @@
-#ifndef NIKON_RAW_H
-#define NIKON_RAW_H
+#ifndef CANON_RAW_H
+#define CANON_RAW_H
 
 #include "../rawimagedata.h"
 
-class NikonRaw : public RawImageData {
+class CanonRaw : public RawImageData {
 
 public:
   /* Public Functions */
-  NikonRaw(const std::string& filepath);
-  ~NikonRaw();
+  CanonRaw(const std::string& filepath);
+  ~CanonRaw();
 
 protected:
   /* Protected Functions */
