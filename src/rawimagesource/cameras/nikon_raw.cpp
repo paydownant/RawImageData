@@ -82,10 +82,10 @@ void NikonRaw :: parse_markernote_tag(off_t raw_image_file_base, int uptag) {
       break;
     case 0x003d:  // Exif.Nikon3.CBlack
       if (tag_type == 3 && tag_count == 4) {
-        raw_image_file.cblack.r = (u_short)get_tag_value(tag_type) >> (14 - raw_image_file.tiff_bps);
-        raw_image_file.cblack.g_r = (u_short)get_tag_value(tag_type) >> (14 - raw_image_file.tiff_bps);
-        raw_image_file.cblack.b = (u_short)get_tag_value(tag_type) >> (14 - raw_image_file.tiff_bps);
-        raw_image_file.cblack.g_b = (u_short)get_tag_value(tag_type) >> (14 - raw_image_file.tiff_bps);
+        raw_image_file.cblack.r = (u_short)get_tag_value(tag_type) >> (14 - raw_image_file.raw_bps);
+        raw_image_file.cblack.g_r = (u_short)get_tag_value(tag_type) >> (14 - raw_image_file.raw_bps);
+        raw_image_file.cblack.b = (u_short)get_tag_value(tag_type) >> (14 - raw_image_file.raw_bps);
+        raw_image_file.cblack.g_b = (u_short)get_tag_value(tag_type) >> (14 - raw_image_file.raw_bps);
       }
       break;
     case 0x0083:  // Exif.Nikon3.LensType (6: Nikon D Series, 12: Nikon G Series)

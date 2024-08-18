@@ -45,6 +45,8 @@ protected:
   };
 
   struct exif_t {
+    off_t offset = 0;
+
     char camera_make[64] = { 0 };
     char camera_model[64] = { 0 };
     char software[64] = { 0 };
@@ -77,12 +79,25 @@ protected:
     u_int cfa = 0;
   };
 
+  struct thumb_t {
+    off_t offset = 0;
+    u_int length = 0;
+    u_int misc = 0;
+
+    int width = 0, height = 0;
+  };
+
   struct raw_image_ifd_t {
     u_int n_tag_entries = 0;
-    int width = 0, height = 0, bps = 0, compression = 0, pinterpret = 0, sample_pixel = 0, orientation = 0;
+
+    int width = 0, height = 0;
+    int bps = 0, compression = 0, pinterpret = 0, sample_pixel = 0, orientation = 0;
+    
     double x_res = 0, y_res = 0;
     int planar_config = 0;
+    
     off_t offset = 0, tile_offset = 0;
+    
     int strip_byte_counts = 0, rows_per_strip = 0, jpeg_if_length = 0;
     int tile_width = 0, tile_length = 0;
 
@@ -94,19 +109,16 @@ protected:
     u_int16_t bitorder = 0x4949;  // Byte order indicator ("II" 0x4949 for little-endian, "MM" 0x4D4D for big-endian)
     u_int16_t version = 0;        // Version
     
+    u_int raw_bps = 0;
     u_int raw_ifd_count = 0;   // Number of IFD
     int file_size = 0;         // File size
 
     off_t strip_offset = 0;
-
-    off_t thumb_offset = 0;
     off_t meta_offset = 0;
 
-    off_t exif_offset = 0;
-    exif_t exif;
     raw_image_ifd_t raw_image_ifd[8];
-
-    u_int tiff_bps = 0;
+    exif_t exif;
+    thumb_t thumb;
 
     white_balance_multiplier_t white_balance_multi_cam;
     rggb_t cblack;

@@ -14,6 +14,7 @@ bool RawImageData :: load_raw() {
   if (parse_raw(raw_image_file.base)) {
     print_data(true, true, false);
     // apply raw frame (tiff)
+    apply_raw_image();
   }
 
   return true;
@@ -80,10 +81,12 @@ bool RawImageData :: parse_raw_image(off_t raw_image_file_base) {
 
 bool RawImageData :: apply_raw_image() {
   jpeg_info_t jpeg_info;
-  if (raw_image_file.thumb_offset) {
-    file.seekg(raw_image_file.thumb_offset, std::ios::beg);
+  if (raw_image_file.thumb.offset) {
+    file.seekg(raw_image_file.thumb.offset, std::ios::beg);
     if (parse_jpeg_info(file, &jpeg_info, true)) {
-      // got thumb info
+      raw_image_file.thumb.misc = jpeg_info.precision;
+      raw_image_file.thumb.width = jpeg_info.width;
+      raw_image_file.thumb.height = jpeg_info.height;
     }
   }
 }
@@ -137,8 +140,8 @@ void RawImageData :: parse_raw_image_tag(off_t raw_image_file_base, u_int ifd) {
     case 258: case 4:   // BitsPerSample
       raw_image_file.raw_image_ifd[ifd].sample_pixel = tag_count;
       raw_image_file.raw_image_ifd[ifd].bps = get_tag_value(tag_type);
-      if (raw_image_file.tiff_bps < raw_image_file.raw_image_ifd[ifd].bps) {
-        raw_image_file.tiff_bps = raw_image_file.raw_image_ifd[ifd].bps;
+      if (raw_image_file.raw_bps < raw_image_file.raw_image_ifd[ifd].bps) {
+        raw_image_file.raw_bps = raw_image_file.raw_image_ifd[ifd].bps;
       }
       break;
     case 259: case 5:   // Compression
@@ -257,7 +260,7 @@ void RawImageData :: parse_raw_image_tag(off_t raw_image_file_base, u_int ifd) {
       }
       break;
     case 34665:         // Exif IFD
-      raw_image_file.exif_offset = get_tag_value(tag_type) + raw_image_file_base;
+      raw_image_file.exif.offset = get_tag_value(tag_type) + raw_image_file_base;
       parse_exif_data(raw_image_file_base);
       break;
     case 34675:         // InterColorProfile
@@ -317,7 +320,7 @@ bool RawImageData :: parse_exif_data(off_t raw_image_file_base) {
   u_int n_tag_entries, tag_id, tag_type, tag_count;
   off_t tag_data_offset, tag_offset;
 
-  file.seekg(raw_image_file.exif_offset, std::ios::beg);
+  file.seekg(raw_image_file.exif.offset, std::ios::beg);
   n_tag_entries = read_2_bytes_unsigned(file, raw_image_file.bitorder);
   for (int i = 0; i < n_tag_entries; ++i) {
     get_tag_header(raw_image_file_base, &tag_id, &tag_type, &tag_count, &tag_offset);
@@ -382,14 +385,6 @@ bool RawImageData :: parse_exif_data(off_t raw_image_file_base) {
     file.seekg(tag_offset, std::ios::beg); 
   }
   return true;
-}
-
-bool RawImageData :: parse_makernote(off_t raw_image_file_base, int uptag) {
-  return false;
-}
-
-void RawImageData :: parse_markernote_tag(off_t raw_image_file_base, int uptag) {
-  return;
 }
 
 bool RawImageData :: parse_gps_data(off_t raw_image_file_base) {
