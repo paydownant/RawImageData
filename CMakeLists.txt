@@ -4,7 +4,9 @@ project(image)
 
 add_executable(${PROJECT_NAME}
   src/main.cpp
-  src/rawimagedata.cpp
-  src/rawimagedata_utils.cpp
-  src/jpegimagedata.cpp
+  src/rawimagesource/rawimagedata.cpp
+  src/rawimagesource/rawimagedata_utils.cpp
+  src/rawimagesource/jpegimagedata.cpp
+
+  src/rawimagesource/cameras/nikon_raw.cpp
 )
