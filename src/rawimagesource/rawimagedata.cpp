@@ -89,6 +89,7 @@ bool RawImageData :: apply_raw_image() {
       raw_image_file.thumb.height = jpeg_info.height;
     }
   }
+  return true;
 }
 
 bool RawImageData :: parse_raw_image_ifd(off_t raw_image_file_base) {
