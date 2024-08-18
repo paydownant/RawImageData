@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <cstring>
 #include <cmath>
+#include <algorithm>
 #include <arpa/inet.h>
 
 #include "rawimagedata_utils.h"
@@ -33,6 +34,14 @@ protected:
     u_int g_r = 0;
     u_int g_b = 0;
     u_int b = 0;
+  };
+
+  struct img_form_t {
+    u_int width = 0, height = 0;
+    u_int bps = 0;
+    u_int compression = 0;
+    u_int sample_pixel = 0;
+    u_int tile_width = 0, tile_length = 0;
   };
 
   struct lens_t {
@@ -80,18 +89,19 @@ protected:
   };
 
   struct thumb_t {
+    img_form_t frame;
+
     off_t offset = 0;
     u_int length = 0;
-    u_int misc = 0;
-
-    int width = 0, height = 0;
   };
 
-  struct raw_image_ifd_t {
+  struct raw_data_ifd_t {
     u_int n_tag_entries = 0;
 
-    int width = 0, height = 0;
-    int bps = 0, compression = 0, pinterpret = 0, sample_pixel = 0, orientation = 0;
+    img_form_t frame;
+
+    int pinterpret = 0;
+    int orientation = 0;
     
     double x_res = 0, y_res = 0;
     int planar_config = 0;
@@ -99,31 +109,31 @@ protected:
     off_t offset = 0, tile_offset = 0;
     
     int strip_byte_counts = 0, rows_per_strip = 0, jpeg_if_length = 0;
-    int tile_width = 0, tile_length = 0;
 
     bool set = false;
   };
 
-  struct raw_image_file_t {
+  struct raw_data_t {
     u_int32_t base = 0;
     u_int16_t bitorder = 0x4949;  // Byte order indicator ("II" 0x4949 for little-endian, "MM" 0x4D4D for big-endian)
     u_int16_t version = 0;        // Version
-    
-    u_int raw_bps = 0;
-    u_int raw_ifd_count = 0;   // Number of IFD
     int file_size = 0;         // File size
+
+    img_form_t frame;
+
+    u_int raw_ifd_count = 0;   // Number of IFD    
 
     off_t strip_offset = 0;
     off_t meta_offset = 0;
 
-    raw_image_ifd_t raw_image_ifd[8];
+    raw_data_ifd_t ifds[8];
     exif_t exif;
     thumb_t thumb;
 
     white_balance_multiplier_t white_balance_multi_cam;
     rggb_t cblack;
 
-  } raw_image_file;
+  } raw_data;
 
 private:
   /* Private Variables */
@@ -158,22 +168,22 @@ protected:
   /* Protected Functions */
   bool raw_identify();
 
-  bool parse_raw(off_t raw_image_file_base);
-  bool parse_raw_image(off_t raw_image_file_base);
-  bool apply_raw_image();
-  bool parse_raw_image_ifd(off_t raw_image_file_base);
-  void parse_raw_image_tag(off_t raw_image_file_base, u_int ifd);
-  bool parse_exif_data(off_t raw_image_file_base);
-  bool parse_strip_data(off_t raw_image_file_base, u_int ifd);
+  bool parse_raw(off_t raw_data_base);
+  bool parse_raw_data(off_t raw_data_base);
+  bool apply_raw_data();
+  bool parse_raw_data_ifd(off_t raw_data_base);
+  void parse_raw_data_tag(off_t raw_data_base, u_int ifd);
+  bool parse_exif_data(off_t raw_data_base);
+  bool parse_strip_data(off_t raw_data_base, u_int ifd);
 
-  virtual bool parse_makernote(off_t raw_image_file_base, int uptag) = 0;
-  virtual void parse_markernote_tag(off_t raw_image_file_base, int uptag) = 0;
+  virtual bool parse_makernote(off_t raw_data_base, int uptag) = 0;
+  virtual void parse_markernote_tag(off_t raw_data_base, int uptag) = 0;
   
-  bool parse_gps_data(off_t raw_image_file_base);
+  bool parse_gps_data(off_t raw_data_base);
   bool parse_time_stamp();
 
-  off_t get_tag_data_offset(off_t raw_image_file_base, u_int tag_type, u_int tag_count);
-  void get_tag_header(off_t raw_image_file_base, u_int *tag_id, u_int *tag_type, u_int *tag_count, off_t *tag_offset);
+  off_t get_tag_data_offset(off_t raw_data_base, u_int tag_type, u_int tag_count);
+  void get_tag_header(off_t raw_data_base, u_int *tag_id, u_int *tag_type, u_int *tag_count, off_t *tag_offset);
   double get_tag_value(u_int tag_type);
 
   void print_data(bool rawFileData, bool exifData, bool rawTiffIfds);
