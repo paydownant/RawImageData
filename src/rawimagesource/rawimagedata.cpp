@@ -87,6 +87,7 @@ bool RawImageData :: apply_raw_image() {
       raw_image_file.thumb.misc = jpeg_info.precision;
       raw_image_file.thumb.width = jpeg_info.width;
       raw_image_file.thumb.height = jpeg_info.height;
+      printf("Apply Thumb Data\n");
     }
   }
   return true;
