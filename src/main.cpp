@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "rawimagesource/cameras/nikon_raw.h"
+#include "rawimagedata/cameras/nikon_raw.h"
 
 int main(int argc, char** argv) {
   NikonRaw img("../sample_images/nikon/DSC_0498.NEF");

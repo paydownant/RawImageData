@@ -32,21 +32,16 @@ To build the project, you'll need a C++ compiler that supports C++11 or later. F
 
 ## Usage
 
-To use the Camera Raw File Parser, create an instance of the `RawImageData` class and provide the path to the raw file you want to parse.
+To use the Camera Raw File Parser, create an instance of the `RawImageData`'s child camera class, in the example, `NikonRaw` class, and provide the path to the raw file you want to parse.
 
 ### Example
 
 ```cpp
-#include "RawImageData.h"
+#include "rawimagedata/cameras/nikon_raw.h"
 
 int main() {
-    try {
-        RawImageData raw_image("path/to/your/rawfile.raw");
-    } catch (const std::runtime_error& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
-        return 1;
-    }
-    return 0;
+  NikonRaw img("../path/to/rawimage.nef");
+  img.load_raw();
 }
 ```
 
@@ -55,18 +50,10 @@ int main() {
 The main entry point for the program is the constructor of the `RawImageData` class:
 
 ```cpp
-RawImageData :: RawImageData(const std::string& file_path) 
-    : file_path(file_path), file(file_path, std::ios::binary) {
-    
-    if (!file) {
-        throw std::runtime_error("Unable to open file: " + file_path);
-    }
-
-    raw_identify();
-    if (parse_raw(raw_image_file.base)) {
-        print_data();
-        // Apply raw frame (TIFF)
-    }
+RawImageData :: RawImageData(const std::string& file_path) : file_path(file_path), file(file_path, std::ios::binary) {
+  if (!file) {
+    throw std::runtime_error("Unable to open file: " + file_path);
+  }
 }
 ```
 
