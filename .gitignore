@@ -1,4 +1,4 @@
 /build
 /.vscode
-/.sample_images
-/.out
+/sample_images
+/out
