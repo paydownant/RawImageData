@@ -10,7 +10,7 @@ int main(int argc, char** argv) {
   int index = 0;
 
   if (index == 0) {
-    img = new NikonRaw("../sample_images/nikon/DSC_1551.NEF");
+    img = new NikonRaw("../sample_images/nikon/DSC_0498.NEF");
   } else if (index == 1) {
     img = new CanonRaw("../sample_images/canon/canon-eos-r.cr3");
   } else {

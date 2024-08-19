@@ -1,4 +1,4 @@
-
+\
 #include "canon_raw.h"
 
 CanonRaw :: CanonRaw(const std::string& filepath) : RawImageData(filepath) {}
@@ -58,10 +58,10 @@ void CanonRaw :: parse_markernote_tag(u_int ifd, off_t raw_data_base, int uptag)
     case 0x0004:  // Exif.Nikon3.Quality
       break;
     case 0x000c:  // Exif.Nikon3.WB_RBLevels (RBG-)
-      raw_data.ifds[ifd].frame.white_balance_multi_cam.r = get_tag_value(tag_type);
-      raw_data.ifds[ifd].frame.white_balance_multi_cam.b = get_tag_value(tag_type);
-      raw_data.ifds[ifd].frame.white_balance_multi_cam.g = get_tag_value(tag_type);
-      raw_data.ifds[ifd].frame.white_balance_multi_cam.set = true;
+      raw_data.ifds[ifd].util.white_balance_multi_cam.r = get_tag_value(tag_type);
+      raw_data.ifds[ifd].util.white_balance_multi_cam.b = get_tag_value(tag_type);
+      raw_data.ifds[ifd].util.white_balance_multi_cam.g = get_tag_value(tag_type);
+      raw_data.ifds[ifd].util.white_balance_multi_cam.set = true;
       break;
     case 0x000d:  // Exif.Nikon3.ProgramShift
       break;
@@ -81,11 +81,11 @@ void CanonRaw :: parse_markernote_tag(u_int ifd, off_t raw_data_base, int uptag)
       break;
     case 0x003d:  // Exif.Nikon3.CBlack
       if (tag_type == 3 && tag_count == 4) {
-        raw_data.ifds[ifd].frame.cblack.r = (u_short)get_tag_value(tag_type);
-        raw_data.ifds[ifd].frame.cblack.g_r = (u_short)get_tag_value(tag_type);
-        raw_data.ifds[ifd].frame.cblack.b = (u_short)get_tag_value(tag_type);
-        raw_data.ifds[ifd].frame.cblack.g_b = (u_short)get_tag_value(tag_type);
-        raw_data.ifds[ifd].frame.cblack.set = true;
+        raw_data.ifds[ifd].util.cblack.r = (u_short)get_tag_value(tag_type);
+        raw_data.ifds[ifd].util.cblack.g_r = (u_short)get_tag_value(tag_type);
+        raw_data.ifds[ifd].util.cblack.b = (u_short)get_tag_value(tag_type);
+        raw_data.ifds[ifd].util.cblack.g_b = (u_short)get_tag_value(tag_type);
+        raw_data.ifds[ifd].util.cblack.set = true;
       }
       break;
     case 0x0083:  // Exif.Nikon3.LensType (6: Nikon D Series, 12: Nikon G Series)

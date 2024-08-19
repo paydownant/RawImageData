@@ -40,20 +40,9 @@ bool RawImageData :: raw_identify() {
 }
 
 bool RawImageData :: apply_raw_data() {
-  jpeg_info_t jpeg_info;
 
-  /* If JPEG thumbnail exist: get info */
-  if (raw_data.thumb.offset) {
-    file.seekg(raw_data.thumb.offset, std::ios::beg);
-    if (parse_jpeg_info(file, &jpeg_info, true)) {
-      raw_data.thumb.frame.width = jpeg_info.width;
-      raw_data.thumb.frame.height = jpeg_info.height;
-      raw_data.thumb.frame.bps = jpeg_info.precision;
-      printf("Apply Thumb Data\n");
-    }
-  }
+  u_int max_size = 0, cur_size = 0;
 
-  /* Set raw_data from raw_data_ifd */
   for (u_int ifd = 0; ifd < raw_data.ifd_count; ++ifd) {
     printf("Apply IFD: %d |",ifd);
     if (!raw_data.ifds[ifd].set) {
@@ -61,131 +50,105 @@ bool RawImageData :: apply_raw_data() {
       printf(" SKIP\n");
       continue;
     }
+    
+    /* Get pixel */
+    cur_size = raw_data.ifds[ifd].frame.width * raw_data.ifds[ifd].frame.height * raw_data.ifds[ifd].frame.bps;
+    /* APPLY FRAME */
+    if (cur_size > max_size && (raw_data.ifds[ifd].frame.bps != 6 || raw_data.ifds[ifd].frame.sample_pixel != 3)) {
+      raw_data.main_frame = raw_data.ifds[ifd].frame;
+      raw_data.data_offset = raw_data.ifds[ifd].data_offset;
+      max_size = cur_size;
+      printf(" Max IFD Set ");
+    }
 
-    /* RAW */
-    if (raw_data.ifds[ifd].strip_offset != 0) {
-      raw_data.strip_offset = raw_data.ifds[ifd].strip_offset;
-    }
-    if (raw_data.ifds[ifd].meta_offset != 0) {
-      raw_data.meta_offset = raw_data.ifds[ifd].meta_offset;
-    }
-    /* END OF RAW */
-
-    /* Apply FRAME */
-    if (raw_data.ifds[ifd].frame.width != 0) {
-      raw_data.frame.width = raw_data.ifds[ifd].frame.width;
-    }
-    if (raw_data.ifds[ifd].frame.height != 0) {
-      raw_data.frame.height = raw_data.ifds[ifd].frame.height;
-    }
-    if (raw_data.ifds[ifd].frame.bps != 0 && raw_data.ifds[ifd].frame.bps > raw_data.frame.bps) {
-      raw_data.frame.bps = raw_data.ifds[ifd].frame.bps;
-    }
-    if (raw_data.ifds[ifd].frame.compression != 0) {
-      raw_data.frame.compression = raw_data.ifds[ifd].frame.compression;
-    }
-    if (raw_data.ifds[ifd].frame.sample_pixel != 0) {
-      raw_data.frame.sample_pixel = raw_data.ifds[ifd].frame.sample_pixel;
-    }
-    if (raw_data.ifds[ifd].frame.cfa != 0) {
-      raw_data.frame.cfa = raw_data.ifds[ifd].frame.cfa;
-    }
-    if (raw_data.ifds[ifd].frame.white_balance_multi_cam.set) {
-      raw_data.frame.white_balance_multi_cam = raw_data.ifds[ifd].frame.white_balance_multi_cam;
-    }
-    if (raw_data.ifds[ifd].frame.cblack.set) {
-      raw_data.frame.cblack = raw_data.ifds[ifd].frame.cblack;
-    }
-    /* END OF FRAME */
-
-    /* Apply EXIF */
+    /* APPLY EXIF */
     if (raw_data.ifds[ifd].exif.camera_make[0] != 0) {
-      strcpy(raw_data.exif.camera_make, raw_data.ifds[ifd].exif.camera_make);
+      strcpy(raw_data.main_exif.camera_make, raw_data.ifds[ifd].exif.camera_make);
     }
     if (raw_data.ifds[ifd].exif.camera_model[0] != 0) {
-      strcpy(raw_data.exif.camera_model, raw_data.ifds[ifd].exif.camera_model);
+      strcpy(raw_data.main_exif.camera_model, raw_data.ifds[ifd].exif.camera_model);
     }
     if (raw_data.ifds[ifd].exif.software[0] != 0) {
-      strcpy(raw_data.exif.software, raw_data.ifds[ifd].exif.software);
+      strcpy(raw_data.main_exif.software, raw_data.ifds[ifd].exif.software);
     }
     if (raw_data.ifds[ifd].exif.focal_length != 0) {
-      raw_data.exif.focal_length = raw_data.ifds[ifd].exif.focal_length;
+      raw_data.main_exif.focal_length = raw_data.ifds[ifd].exif.focal_length;
     }
     if (raw_data.ifds[ifd].exif.exposure != 0) {
-      raw_data.exif.exposure = raw_data.ifds[ifd].exif.exposure;
+      raw_data.main_exif.exposure = raw_data.ifds[ifd].exif.exposure;
     }
     if (raw_data.ifds[ifd].exif.f_number != 0) {
-      raw_data.exif.f_number = raw_data.ifds[ifd].exif.f_number;
+      raw_data.main_exif.f_number = raw_data.ifds[ifd].exif.f_number;
     }
     if (raw_data.ifds[ifd].exif.iso_sensitivity != 0) {
-      raw_data.exif.iso_sensitivity = raw_data.ifds[ifd].exif.iso_sensitivity;
+      raw_data.main_exif.iso_sensitivity = raw_data.ifds[ifd].exif.iso_sensitivity;
     }
     if (raw_data.ifds[ifd].exif.lens_info.set) {
-      raw_data.exif.lens_info = raw_data.ifds[ifd].exif.lens_info;
+      raw_data.main_exif.lens_info = raw_data.ifds[ifd].exif.lens_info;
     }
     if (raw_data.ifds[ifd].exif.image_count != 0) {
-      raw_data.exif.image_count = raw_data.ifds[ifd].exif.image_count;
+      raw_data.main_exif.image_count = raw_data.ifds[ifd].exif.image_count;
     }
     if (raw_data.ifds[ifd].exif.shutter_count != 0) {
-      raw_data.exif.shutter_count = raw_data.ifds[ifd].exif.shutter_count;
+      raw_data.main_exif.shutter_count = raw_data.ifds[ifd].exif.shutter_count;
     }
     if (raw_data.ifds[ifd].exif.artist[0] != 0) {
-      strcpy(raw_data.exif.artist, raw_data.ifds[ifd].exif.artist);
+      strcpy(raw_data.main_exif.artist, raw_data.ifds[ifd].exif.artist);
     }
     if (raw_data.ifds[ifd].exif.copyright[0] != 0) {
-      strcpy(raw_data.exif.copyright, raw_data.ifds[ifd].exif.copyright);
+      strcpy(raw_data.main_exif.copyright, raw_data.ifds[ifd].exif.copyright);
     }
     if (raw_data.ifds[ifd].exif.date_time != 0) {
-      raw_data.exif.date_time = raw_data.ifds[ifd].exif.date_time;
+      raw_data.main_exif.date_time = raw_data.ifds[ifd].exif.date_time;
     }
     if (raw_data.ifds[ifd].exif.date_time_str[0] != 0) {
-      strcpy(raw_data.exif.date_time_str, raw_data.ifds[ifd].exif.date_time_str);
+      strcpy(raw_data.main_exif.date_time_str, raw_data.ifds[ifd].exif.date_time_str);
     }
     if (raw_data.ifds[ifd].exif.icc_profile_offset != 0) {
-      raw_data.exif.icc_profile_offset = raw_data.ifds[ifd].exif.icc_profile_offset;
+      raw_data.main_exif.icc_profile_offset = raw_data.ifds[ifd].exif.icc_profile_offset;
     }
     if (raw_data.ifds[ifd].exif.icc_profile_count != 0) {
-      raw_data.exif.icc_profile_count = raw_data.ifds[ifd].exif.icc_profile_count;
+      raw_data.main_exif.icc_profile_count = raw_data.ifds[ifd].exif.icc_profile_count;
     }
     if (raw_data.ifds[ifd].exif.gps_latitude_reference != 0) {
-      raw_data.exif.gps_latitude_reference = raw_data.ifds[ifd].exif.gps_latitude_reference;
+      raw_data.main_exif.gps_latitude_reference = raw_data.ifds[ifd].exif.gps_latitude_reference;
     }
     if (raw_data.ifds[ifd].exif.gps_latitude != 0) {
-      raw_data.exif.gps_latitude = raw_data.ifds[ifd].exif.gps_latitude;
+      raw_data.main_exif.gps_latitude = raw_data.ifds[ifd].exif.gps_latitude;
     }
     if (raw_data.ifds[ifd].exif.gps_longitude_reference != 0) {
-      raw_data.exif.gps_longitude_reference = raw_data.ifds[ifd].exif.gps_longitude_reference;
+      raw_data.main_exif.gps_longitude_reference = raw_data.ifds[ifd].exif.gps_longitude_reference;
     }
     if (raw_data.ifds[ifd].exif.gps_longitude != 0) {
-      raw_data.exif.gps_longitude = raw_data.ifds[ifd].exif.gps_longitude;
+      raw_data.main_exif.gps_longitude = raw_data.ifds[ifd].exif.gps_longitude;
     }
     /* END OF EXIF */
 
-    
+    /* APPLY UTIL */
+    if (raw_data.ifds[ifd].util.cfa != 0) {
+      raw_data.main_util.cfa = raw_data.ifds[ifd].util.cfa;
+    }
+    if (raw_data.ifds[ifd].util.white_balance_multi_cam.set) {
+      raw_data.main_util.white_balance_multi_cam = raw_data.ifds[ifd].util.white_balance_multi_cam;
+    }
+    if (raw_data.ifds[ifd].util.cblack.set) {
+      raw_data.main_util.cblack = raw_data.ifds[ifd].util.cblack;
+    }
+    /* END OF UTIL */
+
+    /* APPLY OFFSETS */
+    if (raw_data.ifds[ifd].meta_offset != 0) {
+      raw_data.meta_offset = raw_data.ifds[ifd].meta_offset;
+    }
+    if (raw_data.ifds[ifd].tile_offset != 0) {
+      raw_data.tile_offset = raw_data.ifds[ifd].tile_offset;
+    }
+    /* END OF OFFSETS */
+
     printf("\n");
   }
 
-  u_int max_sample_pixel = 0, max_bps = 0;
-  u_int max_resolution = 0, cur_resolution = 0;
-  for (u_int ifd = 0; ifd < raw_data.ifd_count; ++ifd) {
-    /* Get max_sample_pixel */
-    if (raw_data.ifds[ifd].frame.sample_pixel > max_sample_pixel) {
-      max_sample_pixel = raw_data.ifds[ifd].frame.sample_pixel;
-    }
-    if (max_sample_pixel > 3) {
-      max_sample_pixel = 3;
-      fprintf(stderr, "ERROR: Max Sample Pixel Exceeded 3\n");
-    }
-    /* Get max_bps */
-    if (raw_data.ifds[ifd].frame.bps > max_bps) {
-      max_bps = raw_data.ifds[ifd].frame.bps;
-    }
-    /* Get pixel */
-    max_resolution = raw_data.frame.width * raw_data.frame.height;
-    cur_resolution = raw_data.ifds[ifd].frame.width * raw_data.ifds[ifd].frame.height;
-  }
-  printf("max sample pixel: %d\n", max_sample_pixel);
-  printf("max bps: %d\n", max_bps);
+
 
   return true;
 }
@@ -284,7 +247,7 @@ void RawImageData :: parse_raw_data_ifd_tag(u_int ifd, off_t raw_data_base) {
       raw_data.ifds[ifd].frame.compression = get_tag_value(tag_type);
       break;
     case 262: case 8:   // PhotometricInterpretation
-      raw_data.ifds[ifd].pinterpret = get_tag_value(tag_type);
+      raw_data.ifds[ifd].frame.pinterpret = get_tag_value(tag_type);
       break;
     case 271: case 17:  // Make
       file.read(raw_data.ifds[ifd].exif.camera_make, 64);
@@ -293,11 +256,11 @@ void RawImageData :: parse_raw_data_ifd_tag(u_int ifd, off_t raw_data_base) {
       file.read(raw_data.ifds[ifd].exif.camera_model, 64);
       break;
     case 273: case 19:  // StripOffsets
-      raw_data.ifds[ifd].offset = get_tag_value(tag_type) + raw_data_base;
+      raw_data.ifds[ifd].data_offset = get_tag_value(tag_type) + raw_data_base;
       parse_strip_data(ifd, raw_data_base);
       break;
     case 274: case 20:  // Orientation
-      raw_data.ifds[ifd].orientation = get_tag_value(tag_type);
+      raw_data.ifds[ifd].frame.orientation = get_tag_value(tag_type);
       break;
     case 277: case 23:  // SamplesPerPixel
       raw_data.ifds[ifd].frame.sample_pixel = get_tag_value(tag_type);
@@ -309,13 +272,13 @@ void RawImageData :: parse_raw_data_ifd_tag(u_int ifd, off_t raw_data_base) {
       raw_data.ifds[ifd].strip_byte_counts = get_tag_value(tag_type);
       break;
     case 282: case 28:  // XResolution
-      raw_data.ifds[ifd].x_res = get_tag_value(tag_type);
+      raw_data.ifds[ifd].frame.x_res = get_tag_value(tag_type);
       break;
     case 283: case 29:  // YResolution
-      raw_data.ifds[ifd].y_res = get_tag_value(tag_type);
+      raw_data.ifds[ifd].frame.y_res = get_tag_value(tag_type);
       break;
     case 284: case 30:  // PlanarConfiguration
-      raw_data.ifds[ifd].planar_config = get_tag_value(tag_type);
+      raw_data.ifds[ifd].frame.planar_config = get_tag_value(tag_type);
       break;
     case 296: case 42:  // ResolutionUnit
       break;
@@ -353,7 +316,7 @@ void RawImageData :: parse_raw_data_ifd_tag(u_int ifd, off_t raw_data_base) {
       }
       break;
     case 513:           // JPEGInterchangeFormat
-      raw_data.ifds[ifd].offset = get_tag_value(tag_type) + raw_data_base;
+      raw_data.ifds[ifd].data_offset = get_tag_value(tag_type) + raw_data_base;
       parse_strip_data(ifd, raw_data_base);
       break;
     case 514:           // JPEGInterchangeFormatLength
@@ -415,10 +378,10 @@ void RawImageData :: parse_raw_data_ifd_tag(u_int ifd, off_t raw_data_base) {
 
 bool RawImageData :: parse_strip_data(u_int ifd, off_t raw_data_base) {
   jpeg_info_t jpeg_info;
-  if (raw_data.ifds[ifd].frame.bps || raw_data.ifds[ifd].offset == 0) {
+  if (raw_data.ifds[ifd].frame.bps || raw_data.ifds[ifd].data_offset == 0) {
     return false;
   }
-  file.seekg(raw_data.ifds[ifd].offset, std::ios::beg);
+  file.seekg(raw_data.ifds[ifd].data_offset, std::ios::beg);
   if (parse_jpeg_info(file, &jpeg_info, true)) {
     // print_jpeg_info(&jpeg_info);
     raw_data.ifds[ifd].frame.compression = 6;
@@ -427,7 +390,7 @@ bool RawImageData :: parse_strip_data(u_int ifd, off_t raw_data_base) {
     raw_data.ifds[ifd].frame.bps = jpeg_info.precision;
     raw_data.ifds[ifd].frame.sample_pixel = jpeg_info.components;
 
-    parse_raw_data(raw_data.ifds[ifd].offset + 12);
+    parse_raw_data(raw_data.ifds[ifd].data_offset + 12);
   }
   return true;
 }
@@ -486,8 +449,8 @@ bool RawImageData :: parse_exif_data(u_int ifd, off_t raw_data_base) {
       case 0xa302:  // CFAPattern
         if (read_4_bytes_unsigned(file, raw_data.bitorder) == 0x20002) {
           for (u_int i = 0; i < 8; i += 2) {
-            raw_data.ifds[ifd].frame.cfa = i;
-            raw_data.ifds[ifd].frame.cfa |= file.get() * BIT_MASK << i;
+            raw_data.ifds[ifd].util.cfa = i;
+            raw_data.ifds[ifd].util.cfa |= file.get() * BIT_MASK << i;
           }
         }
         break;
@@ -634,38 +597,38 @@ void RawImageData :: print_data(bool rawFileData, bool exifData, bool rawTiffIfd
   printf("File size: %.2lfMB\n", (float)raw_data.file_size / 1000000);
 
   printf("Frame:\n");
-  printf("Width: %d\n", raw_data.frame.width);
-  printf("Height: %d\n", raw_data.frame.height);
-  printf("BPS: %d\n", raw_data.frame.bps);
-  printf("Compression: %d\n", raw_data.frame.compression);
-  printf("Sample per pixel: %d\n", raw_data.frame.sample_pixel);
-  printf("CFA Pattern: %d\n", raw_data.frame.cfa);
-  printf("Camera White Balance Multiplier (RGB): %lf %lf %lf\n", raw_data.frame.white_balance_multi_cam.r, raw_data.frame.white_balance_multi_cam.g, raw_data.frame.white_balance_multi_cam.b);
-  printf("Cblack (RGGB): %d %d %d %d\n", raw_data.frame.cblack.r, raw_data.frame.cblack.g_r, raw_data.frame.cblack.g_b, raw_data.frame.cblack.b);
+  printf("Width: %d\n", raw_data.main_frame.width);
+  printf("Height: %d\n", raw_data.main_frame.height);
+  printf("BPS: %d\n", raw_data.main_frame.bps);
+  printf("Compression: %d\n", raw_data.main_frame.compression);
+  printf("Sample per pixel: %d\n", raw_data.main_frame.sample_pixel);
+  printf("CFA Pattern: %d\n", raw_data.main_util.cfa);
+  printf("Camera White Balance Multiplier (RGB): %lf %lf %lf\n", raw_data.main_util.white_balance_multi_cam.r, raw_data.main_util.white_balance_multi_cam.g, raw_data.main_util.white_balance_multi_cam.b);
+  printf("Cblack (RGGB): %d %d %d %d\n", raw_data.main_util.cblack.r, raw_data.main_util.cblack.g_r, raw_data.main_util.cblack.g_b, raw_data.main_util.cblack.b);
 
   exif:
     if (!exifData) goto rawifd;
     printf("\n================EXIF DATA===============\n");
-    printf("Camera Make: %s\n", raw_data.exif.camera_make);
-    printf("Camera Model: %s\n", raw_data.exif.camera_model);
-    printf("Software: %s\n", raw_data.exif.software);
+    printf("Camera Make: %s\n", raw_data.main_exif.camera_make);
+    printf("Camera Model: %s\n", raw_data.main_exif.camera_model);
+    printf("Software: %s\n", raw_data.main_exif.software);
   
-    printf("Focal Length: %lf\n", raw_data.exif.focal_length);
-    printf("Exposure: %lf\n", raw_data.exif.exposure);
-    printf("F Number: %lf\n", raw_data.exif.f_number);
-    printf("ISO Sensitivity: %lf\n", raw_data.exif.iso_sensitivity);
+    printf("Focal Length: %lf\n", raw_data.main_exif.focal_length);
+    printf("Exposure: %lf\n", raw_data.main_exif.exposure);
+    printf("F Number: %lf\n", raw_data.main_exif.f_number);
+    printf("ISO Sensitivity: %lf\n", raw_data.main_exif.iso_sensitivity);
   
-    printf("Lens Model: %s\n", raw_data.exif.lens_info.lens_model);
-    printf("Lens Type: %d\n", raw_data.exif.lens_info.lens_type);
-    printf("Lens Focal Length: Min %lf, Max %lf\n", raw_data.exif.lens_info.min_focal_length, raw_data.exif.lens_info.max_focal_length);
-    printf("Lens Aperture F: Min %lf, Max %lf\n", raw_data.exif.lens_info.min_f_number, raw_data.exif.lens_info.max_f_number);
+    printf("Lens Model: %s\n", raw_data.main_exif.lens_info.lens_model);
+    printf("Lens Type: %d\n", raw_data.main_exif.lens_info.lens_type);
+    printf("Lens Focal Length: Min %lf, Max %lf\n", raw_data.main_exif.lens_info.min_focal_length, raw_data.main_exif.lens_info.max_focal_length);
+    printf("Lens Aperture F: Min %lf, Max %lf\n", raw_data.main_exif.lens_info.min_f_number, raw_data.main_exif.lens_info.max_f_number);
 
-    printf("Image Count: %d\n", raw_data.exif.image_count);
-    printf("Shutter Count: %d\n", raw_data.exif.shutter_count);
+    printf("Image Count: %d\n", raw_data.main_exif.image_count);
+    printf("Shutter Count: %d\n", raw_data.main_exif.shutter_count);
 
-    printf("Artist: %s\n", raw_data.exif.artist);
-    printf("Copyright: %s\n", raw_data.exif.copyright);
-    printf("Date time: %s\n", raw_data.exif.date_time_str);
+    printf("Artist: %s\n", raw_data.main_exif.artist);
+    printf("Copyright: %s\n", raw_data.main_exif.copyright);
+    printf("Date time: %s\n", raw_data.main_exif.date_time_str);
 
   rawifd:
     if (!rawTiffIfds) goto end;
@@ -678,9 +641,9 @@ void RawImageData :: print_data(bool rawFileData, bool exifData, bool rawTiffIfd
         printf("Height: %d\n", raw_data.ifds[i].frame.height);
         printf("BPS: %d\n", raw_data.ifds[i].frame.bps);
         printf("Compression: %d\n", raw_data.ifds[i].frame.compression);
-        printf("P Interpret: %d\n", raw_data.ifds[i].pinterpret);
-        printf("Orientation: %d\n", raw_data.ifds[i].orientation);
-        printf("Offset: %d\n", raw_data.ifds[i].offset);
+        printf("P Interpret: %d\n", raw_data.ifds[i].frame.pinterpret);
+        printf("Orientation: %d\n", raw_data.ifds[i].frame.orientation);
+        printf("Offset: %d\n", raw_data.ifds[i].data_offset);
         printf("Tile Offset: %d\n", raw_data.ifds[i].tile_offset);
         printf("\n");
       }

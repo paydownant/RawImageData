@@ -45,7 +45,14 @@ protected:
     u_int bps = 0;
     u_int compression = 0;
     u_int sample_pixel = 0;
+    u_int pinterpret = 0;
     u_int tile_width = 0, tile_length = 0;
+    u_int x_res = 0, y_res = 0;
+    u_int planar_config;
+    int orientation = 0;
+  };
+
+  struct raw_util_t {
     u_int cfa = 0;
     white_balance_multiplier_t white_balance_multi_cam;
     rggb_t cblack;
@@ -105,37 +112,37 @@ protected:
     bool set = false;
 
     u_int n_tag_entries = 0;
-    img_frame_t frame;
-    exif_t exif;
 
-    int pinterpret = 0;
-    int orientation = 0;
+    img_frame_t frame;
+    raw_util_t util;
+    exif_t exif;
     
-    double x_res = 0, y_res = 0;
-    int planar_config = 0;
-    
-    off_t offset = 0, tile_offset = 0;
-    
-    off_t strip_offset = 0;
+    off_t data_offset = 0;
+    off_t tile_offset = 0;
     off_t meta_offset = 0;
     
-    int strip_byte_counts = 0, rows_per_strip = 0, jpeg_if_length = 0;
+    u_int strip_byte_counts = 0;
+    u_int rows_per_strip = 0;
+    u_int jpeg_if_length = 0;
+
   };
 
   struct raw_data_t {
     u_int32_t base = 0;
     u_int16_t bitorder = 0x4949;  // Byte order indicator ("II" 0x4949 for little-endian, "MM" 0x4D4D for big-endian)
     u_int16_t version = 0;        // Version
-    int file_size = 0;         // File size
+    int file_size = 0;            // File size
 
-    u_int ifd_count = 0;   // Number of IFD
-    raw_data_ifd_t ifds[8];
+    u_int ifd_count = 0;          // Total Number of IFD
+    raw_data_ifd_t ifds[8];       // IFDs
 
-    img_frame_t frame;
-    exif_t exif;
-    thumb_t thumb;
+    img_frame_t main_frame;
+    raw_util_t main_util;
+    exif_t main_exif;
 
-    off_t strip_offset = 0;
+    off_t data_offset = 0;
+    
+    off_t tile_offset = 0;
     off_t meta_offset = 0;
 
   } raw_data;
