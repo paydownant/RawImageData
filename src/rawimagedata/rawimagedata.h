@@ -25,6 +25,7 @@ protected:
   std::ifstream file;
 
   struct white_balance_multiplier_t {
+    bool set = false;
     double r = 0;
     double g = 0;
     double b = 0;
@@ -32,21 +33,26 @@ protected:
   };
 
   struct rggb_t {
+    bool set = false;
     u_int r = 0;
     u_int g_r = 0;
     u_int g_b = 0;
     u_int b = 0;
   };
 
-  struct img_form_t {
+  struct img_frame_t {
     u_int width = 0, height = 0;
     u_int bps = 0;
     u_int compression = 0;
     u_int sample_pixel = 0;
     u_int tile_width = 0, tile_length = 0;
+    u_int cfa = 0;
+    white_balance_multiplier_t white_balance_multi_cam;
+    rggb_t cblack;
   };
 
   struct lens_t {
+    bool set = false;
     char lens_model[64] = { 0 };
     u_short lens_type = 0;
     double min_focal_length = 0;
@@ -86,21 +92,21 @@ protected:
     double gps_latitude = 0;
     char gps_longitude_reference = 0;
     double gps_longitude = 0;
-
-    u_int cfa = 0;
   };
 
   struct thumb_t {
-    img_form_t frame;
+    img_frame_t frame;
 
     off_t offset = 0;
     u_int length = 0;
   };
 
   struct raw_data_ifd_t {
-    u_int n_tag_entries = 0;
+    bool set = false;
 
-    img_form_t frame;
+    u_int n_tag_entries = 0;
+    img_frame_t frame;
+    exif_t exif;
 
     int pinterpret = 0;
     int orientation = 0;
@@ -110,9 +116,10 @@ protected:
     
     off_t offset = 0, tile_offset = 0;
     
+    off_t strip_offset = 0;
+    off_t meta_offset = 0;
+    
     int strip_byte_counts = 0, rows_per_strip = 0, jpeg_if_length = 0;
-
-    bool set = false;
   };
 
   struct raw_data_t {
@@ -121,19 +128,15 @@ protected:
     u_int16_t version = 0;        // Version
     int file_size = 0;         // File size
 
-    img_form_t frame;
-
-    u_int raw_ifd_count = 0;   // Number of IFD    
-
-    off_t strip_offset = 0;
-    off_t meta_offset = 0;
-
+    u_int ifd_count = 0;   // Number of IFD
     raw_data_ifd_t ifds[8];
+
+    img_frame_t frame;
     exif_t exif;
     thumb_t thumb;
 
-    white_balance_multiplier_t white_balance_multi_cam;
-    rggb_t cblack;
+    off_t strip_offset = 0;
+    off_t meta_offset = 0;
 
   } raw_data;
 
@@ -170,19 +173,19 @@ protected:
   /* Protected Functions */
   bool raw_identify();
 
+  bool apply_raw_data();
+
   bool parse_raw(off_t raw_data_base);
   bool parse_raw_data(off_t raw_data_base);
-  bool apply_raw_data();
   bool parse_raw_data_ifd(off_t raw_data_base);
-  void parse_raw_data_tag(off_t raw_data_base, u_int ifd);
-  bool parse_exif_data(off_t raw_data_base);
-  bool parse_strip_data(off_t raw_data_base, u_int ifd);
+  void parse_raw_data_ifd_tag(u_int ifd, off_t raw_data_base);
+  bool parse_exif_data(u_int ifd, off_t raw_data_base);
+  bool parse_strip_data(u_int ifd, off_t raw_data_base);
+  bool parse_gps_data(u_int ifd, off_t raw_data_base);
+  bool parse_time_stamp(u_int ifd);
 
-  virtual bool parse_makernote(off_t raw_data_base, int uptag) = 0;
-  virtual void parse_markernote_tag(off_t raw_data_base, int uptag) = 0;
-  
-  bool parse_gps_data(off_t raw_data_base);
-  bool parse_time_stamp();
+  virtual bool parse_makernote(u_int ifd, off_t raw_data_base, int uptag) = 0;
+  virtual void parse_markernote_tag(u_int ifd, off_t raw_data_base, int uptag) = 0;
 
   off_t get_tag_data_offset(off_t raw_data_base, u_int tag_type, u_int tag_count);
   void get_tag_header(off_t raw_data_base, u_int *tag_id, u_int *tag_type, u_int *tag_count, off_t *tag_offset);

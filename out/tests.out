@@ -1,0 +1,270 @@
+tag: 254 type: 4 count: 1 offset: 22
+tag: 256 type: 4 count: 1 offset: 34
+tag: 257 type: 4 count: 1 offset: 46
+tag: 258 type: 3 count: 3 offset: 58
+tag: 259 type: 3 count: 1 offset: 70
+tag: 262 type: 3 count: 1 offset: 82
+tag: 271 type: 2 count: 18 offset: 94
+tag: 272 type: 2 count: 12 offset: 106
+tag: 273 type: 4 count: 1 offset: 118
+tag: 274 type: 3 count: 1 offset: 130
+tag: 277 type: 3 count: 1 offset: 142
+tag: 278 type: 4 count: 1 offset: 154
+tag: 279 type: 4 count: 1 offset: 166
+tag: 282 type: 5 count: 1 offset: 178
+tag: 283 type: 5 count: 1 offset: 190
+tag: 284 type: 3 count: 1 offset: 202
+tag: 296 type: 3 count: 1 offset: 214
+tag: 305 type: 2 count: 10 offset: 226
+tag: 306 type: 2 count: 20 offset: 238
+tag: 315 type: 2 count: 37 offset: 250
+tag: 330 type: 4 count: 3 offset: 262
+tag: 254 type: 4 count: 1 offset: 175474
+tag: 259 type: 3 count: 1 offset: 175486
+tag: 282 type: 5 count: 1 offset: 175498
+tag: 283 type: 5 count: 1 offset: 175510
+tag: 296 type: 3 count: 1 offset: 175522
+tag: 513 type: 4 count: 1 offset: 175534
+JPEG Marker: 0xffdb, length: 130
+JPEG Marker: 0xffc0, length: 15
+JPEG Marker: 0xffc4, length: 416
+JPEG Marker: 0xffda, length: 10
+tag: 514 type: 4 count: 1 offset: 175546
+tag: 531 type: 3 count: 1 offset: 175558
+tag: 254 type: 4 count: 1 offset: 175594
+tag: 256 type: 4 count: 1 offset: 175606
+tag: 257 type: 4 count: 1 offset: 175618
+tag: 258 type: 3 count: 1 offset: 175630
+tag: 259 type: 3 count: 1 offset: 175642
+tag: 262 type: 3 count: 1 offset: 175654
+tag: 273 type: 4 count: 1 offset: 175666
+tag: 277 type: 3 count: 1 offset: 175678
+tag: 278 type: 4 count: 1 offset: 175690
+tag: 279 type: 4 count: 1 offset: 175702
+tag: 282 type: 5 count: 1 offset: 175714
+tag: 283 type: 5 count: 1 offset: 175726
+tag: 284 type: 3 count: 1 offset: 175738
+tag: 296 type: 3 count: 1 offset: 175750
+tag: 33421 type: 3 count: 2 offset: 175762
+tag: 33422 type: 1 count: 4 offset: 175774
+tag: 37399 type: 3 count: 1 offset: 175786
+tag: 254 type: 4 count: 1 offset: 175822
+tag: 259 type: 3 count: 1 offset: 175834
+tag: 282 type: 5 count: 1 offset: 175846
+tag: 283 type: 5 count: 1 offset: 175858
+tag: 296 type: 3 count: 1 offset: 175870
+tag: 513 type: 4 count: 1 offset: 175882
+JPEG Marker: 0xffdb, length: 130
+JPEG Marker: 0xffc0, length: 15
+JPEG Marker: 0xffc4, length: 416
+JPEG Marker: 0xffda, length: 10
+tag: 514 type: 4 count: 1 offset: 175894
+tag: 531 type: 3 count: 1 offset: 175906
+tag: 532 type: 5 count: 6 offset: 274
+tag: 700 type: 1 count: 1024 offset: 286
+tag: 33432 type: 2 count: 55 offset: 298
+tag: 34665 type: 4 count: 1 offset: 310
+Exif tag: 33434 type: 5 count: 1 offset: 1654
+Exif tag: 33437 type: 5 count: 1 offset: 1666
+Exif tag: 34850 type: 3 count: 1 offset: 1678
+Exif tag: 34855 type: 3 count: 1 offset: 1690
+Exif tag: 34864 type: 3 count: 1 offset: 1702
+Exif tag: 36867 type: 2 count: 20 offset: 1714
+Exif tag: 36868 type: 2 count: 20 offset: 1726
+Exif tag: 37380 type: 10 count: 1 offset: 1738
+Exif tag: 37381 type: 5 count: 1 offset: 1750
+Exif tag: 37383 type: 3 count: 1 offset: 1762
+Exif tag: 37384 type: 3 count: 1 offset: 1774
+Exif tag: 37385 type: 3 count: 1 offset: 1786
+Exif tag: 37386 type: 5 count: 1 offset: 1798
+Exif tag: 37500 type: 7 count: 115656 offset: 1810
+Makernote tag: 1 type: 7 count: 4 offset: 2216
+Makernote tag: 2 type: 3 count: 2 offset: 2228
+Makernote tag: 4 type: 2 count: 8 offset: 2240
+Makernote tag: 5 type: 2 count: 13 offset: 2252
+Makernote tag: 7 type: 2 count: 7 offset: 2264
+Makernote tag: 8 type: 2 count: 13 offset: 2276
+Makernote tag: 9 type: 2 count: 20 offset: 2288
+Makernote tag: 11 type: 8 count: 2 offset: 2300
+Makernote tag: 12 type: 5 count: 4 offset: 2312
+Makernote tag: 13 type: 7 count: 4 offset: 2324
+Makernote tag: 14 type: 7 count: 4 offset: 2336
+Makernote tag: 17 type: 4 count: 1 offset: 2348
+Parse makernote offset: 25244
+tag: 259 type: 3 count: 1 offset: 25258
+tag: 282 type: 5 count: 1 offset: 25270
+tag: 283 type: 5 count: 1 offset: 25282
+tag: 296 type: 3 count: 1 offset: 25294
+tag: 513 type: 4 count: 1 offset: 25306
+JPEG Marker: 0xffdb, length: 130
+JPEG Marker: 0xffc0, length: 15
+JPEG Marker: 0xffc4, length: 416
+JPEG Marker: 0xffda, length: 10
+tag: 514 type: 4 count: 1 offset: 25318
+tag: 531 type: 3 count: 1 offset: 25330
+Makernote tag: 18 type: 7 count: 4 offset: 2360
+Makernote tag: 19 type: 3 count: 2 offset: 2372
+Makernote tag: 23 type: 7 count: 4 offset: 2384
+Makernote tag: 24 type: 7 count: 4 offset: 2396
+Makernote tag: 25 type: 10 count: 1 offset: 2408
+Makernote tag: 27 type: 3 count: 7 offset: 2420
+Makernote tag: 28 type: 7 count: 3 offset: 2432
+Makernote tag: 29 type: 2 count: 8 offset: 2444
+Makernote tag: 30 type: 3 count: 1 offset: 2456
+Makernote tag: 31 type: 7 count: 8 offset: 2468
+Makernote tag: 34 type: 3 count: 1 offset: 2480
+Makernote tag: 35 type: 7 count: 58 offset: 2492
+Makernote tag: 36 type: 7 count: 4 offset: 2504
+Makernote tag: 37 type: 7 count: 14 offset: 2516
+Makernote tag: 42 type: 3 count: 1 offset: 2528
+Makernote tag: 43 type: 7 count: 16 offset: 2540
+Makernote tag: 44 type: 7 count: 574 offset: 2552
+Makernote tag: 50 type: 7 count: 8 offset: 2564
+Makernote tag: 131 type: 1 count: 1 offset: 2576
+Makernote tag: 132 type: 5 count: 4 offset: 2588
+Makernote tag: 135 type: 1 count: 1 offset: 2600
+Makernote tag: 137 type: 3 count: 1 offset: 2612
+Makernote tag: 138 type: 3 count: 1 offset: 2624
+Makernote tag: 139 type: 7 count: 4 offset: 2636
+Makernote tag: 140 type: 7 count: 578 offset: 2648
+Meta Offset: 3752
+Makernote tag: 145 type: 7 count: 10457 offset: 2660
+Makernote tag: 147 type: 3 count: 1 offset: 2672
+Makernote tag: 149 type: 2 count: 5 offset: 2684
+Makernote tag: 150 type: 7 count: 46 offset: 2696
+Meta Offset: 14800
+Makernote tag: 151 type: 7 count: 812 offset: 2708
+Colour balance ver: 217
+Makernote tag: 152 type: 7 count: 36 offset: 2720
+Makernote tag: 153 type: 3 count: 2 offset: 2732
+Makernote tag: 158 type: 3 count: 10 offset: 2744
+Makernote tag: 163 type: 1 count: 1 offset: 2756
+Makernote tag: 164 type: 7 count: 4 offset: 2768
+Makernote tag: 167 type: 4 count: 1 offset: 2780
+Makernote tag: 168 type: 7 count: 49 offset: 2792
+Makernote tag: 176 type: 7 count: 16 offset: 2804
+Makernote tag: 177 type: 3 count: 1 offset: 2816
+Makernote tag: 182 type: 7 count: 8 offset: 2828
+Makernote tag: 183 type: 7 count: 30 offset: 2840
+Makernote tag: 184 type: 7 count: 172 offset: 2852
+Makernote tag: 185 type: 7 count: 4 offset: 2864
+Makernote tag: 186 type: 7 count: 1546 offset: 2876
+Makernote tag: 187 type: 7 count: 8 offset: 2888
+Makernote tag: 188 type: 7 count: 7692 offset: 2900
+Exif tag: 37510 type: 7 count: 44 offset: 1822
+Exif tag: 37520 type: 2 count: 3 offset: 1834
+Exif tag: 37521 type: 2 count: 3 offset: 1846
+Exif tag: 37522 type: 2 count: 3 offset: 1858
+Exif tag: 41495 type: 3 count: 1 offset: 1870
+Exif tag: 41728 type: 7 count: 1 offset: 1882
+Exif tag: 41729 type: 7 count: 1 offset: 1894
+Exif tag: 41730 type: 7 count: 8 offset: 1906
+Exif tag: 41985 type: 3 count: 1 offset: 1918
+Exif tag: 41986 type: 3 count: 1 offset: 1930
+Exif tag: 41987 type: 3 count: 1 offset: 1942
+Exif tag: 41988 type: 5 count: 1 offset: 1954
+Exif tag: 41989 type: 3 count: 1 offset: 1966
+Exif tag: 41990 type: 3 count: 1 offset: 1978
+Exif tag: 41991 type: 3 count: 1 offset: 1990
+Exif tag: 41992 type: 3 count: 1 offset: 2002
+Exif tag: 41993 type: 3 count: 1 offset: 2014
+Exif tag: 41994 type: 3 count: 1 offset: 2026
+Exif tag: 41996 type: 3 count: 1 offset: 2038
+tag: 34853 type: 4 count: 1 offset: 322
+gps data: 2
+gps data: 3
+gps data: 0
+gps data: 0
+tag: 36867 type: 2 count: 20 offset: 334
+tag: 37398 type: 1 count: 4 offset: 346
+Apply IFD: 0 | SKIP
+Apply IFD: 1 |
+Apply IFD: 2 |
+Apply IFD: 3 |
+Apply IFD: 4 |
+max sample pixel: 3
+max bps: 14
+
+================RAW FILE DATA===============
+Base offset: 0
+Bit ordering: 0x4d4d
+Version: 0
+File size: 48.31MB
+CFA Pattern: -2139062138
+Camera White Balance Multiplier (RGB): 1.785156 1.000000 1.726562
+Cblack (RGGB): 0 0 0 0
+
+================EXIF DATA===============
+Camera Make: NIKON CORPORATION
+Camera Model: NIKON D800E
+Software: Ver.1.11 
+Focal Length: 35.000000
+Exposure: 0.003125
+F Number: 6.300000
+ISO Sensitivity: 1000.000000
+Lens Model: 
+Lens Type: 70
+Lens Focal Length: Min 17.000000, Max 35.000000
+Lens Aperture F: Min 2.800000, Max 4.000000
+Image Count: 0
+Shutter Count: 22131
+Artist:                                     
+Copyright:                                                       
+Date time: 2024:04:09 11:50:29
+
+================RAW TIFF IFDs===============
+IFD: 2
+N Tag Entries: 28
+Width: 160
+Height: 120
+BPS: 8
+Compression: 1
+P Interpret: 2
+Orientation: 8
+Offset: 117860
+Tile Offset: 0
+
+IFD: 3
+N Tag Entries: 8
+Width: 7360
+Height: 4912
+BPS: 8
+Compression: 6
+P Interpret: 0
+Orientation: 0
+Offset: 993792
+Tile Offset: 0
+
+IFD: 4
+N Tag Entries: 17
+Width: 7424
+Height: 4924
+BPS: 14
+Compression: 34713
+P Interpret: 32803
+Orientation: 0
+Offset: 5453824
+Tile Offset: 0
+
+IFD: 5
+N Tag Entries: 8
+Width: 1632
+Height: 1080
+BPS: 8
+Compression: 6
+P Interpret: 0
+Orientation: 0
+Offset: 176128
+Tile Offset: 0
+
+IFD: 6
+N Tag Entries: 7
+Width: 570
+Height: 375
+BPS: 8
+Compression: 6
+P Interpret: 0
+Orientation: 0
+Offset: 25352
+Tile Offset: 0
+
