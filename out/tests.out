@@ -190,6 +190,12 @@ Base offset: 0
 Bit ordering: 0x4d4d
 Version: 0
 File size: 48.31MB
+Frame:
+Width: 1632
+Height: 1080
+BPS: 14
+Compression: 6
+Sample per pixel: 3
 CFA Pattern: -2139062138
 Camera White Balance Multiplier (RGB): 1.785156 1.000000 1.726562
 Cblack (RGGB): 0 0 0 0
@@ -211,60 +217,3 @@ Shutter Count: 22131
 Artist:                                     
 Copyright:                                                       
 Date time: 2024:04:09 11:50:29
-
-================RAW TIFF IFDs===============
-IFD: 2
-N Tag Entries: 28
-Width: 160
-Height: 120
-BPS: 8
-Compression: 1
-P Interpret: 2
-Orientation: 8
-Offset: 117860
-Tile Offset: 0
-
-IFD: 3
-N Tag Entries: 8
-Width: 7360
-Height: 4912
-BPS: 8
-Compression: 6
-P Interpret: 0
-Orientation: 0
-Offset: 993792
-Tile Offset: 0
-
-IFD: 4
-N Tag Entries: 17
-Width: 7424
-Height: 4924
-BPS: 14
-Compression: 34713
-P Interpret: 32803
-Orientation: 0
-Offset: 5453824
-Tile Offset: 0
-
-IFD: 5
-N Tag Entries: 8
-Width: 1632
-Height: 1080
-BPS: 8
-Compression: 6
-P Interpret: 0
-Orientation: 0
-Offset: 176128
-Tile Offset: 0
-
-IFD: 6
-N Tag Entries: 7
-Width: 570
-Height: 375
-BPS: 8
-Compression: 6
-P Interpret: 0
-Orientation: 0
-Offset: 25352
-Tile Offset: 0
-
