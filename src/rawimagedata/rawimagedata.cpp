@@ -556,7 +556,7 @@ void RawImageData :: print_data(bool rawFileData, bool rawTiffIfds) {
   printf("Version: %d\n", raw_data.version);
   printf("File size: %.2lfMB\n", (float)raw_data.file_size / 1000000);
 
-  printf("IFD: %d\n", raw_data.main_ifd._id);
+  printf("IFD (Unset(-1): ERROR): %d\n", raw_data.main_ifd._id);
   printf("Width: %d\n", raw_data.main_ifd.frame.width);
   printf("Height: %d\n", raw_data.main_ifd.frame.height);
   printf("BPS: %d\n", raw_data.main_ifd.frame.bps);
