@@ -11,7 +11,7 @@ RawImageData :: ~RawImageData() {}
 
 bool RawImageData :: load_raw() {
   raw_identify();
-  if (parse_raw(raw_data.base)) {
+  if (init_parse_raw(raw_data.base)) {
     // apply raw frame (tiff)
     apply_raw_data();
     print_data(true, false);
@@ -113,10 +113,11 @@ bool RawImageData :: apply_raw_data() {
     raw_data.main_ifd.frame.tile_length = UINT32_MAX;
   }
 
+
   return true;
 }
 
-bool RawImageData :: parse_raw(off_t raw_data_base) {
+bool RawImageData :: init_parse_raw(off_t raw_data_base) {
   raw_data.ifd_count = 0; // reset ifd count
   memset(raw_data.ifds, 0, sizeof(raw_data.ifds));  // reset ifds
   

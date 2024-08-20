@@ -176,7 +176,7 @@ protected:
 
   bool apply_raw_data();
 
-  bool parse_raw(off_t raw_data_base);
+  bool init_parse_raw(off_t raw_data_base);
   bool parse_raw_data(off_t raw_data_base);
   bool parse_raw_data_ifd(off_t raw_data_base);
   void parse_raw_data_ifd_tag(u_int ifd, off_t raw_data_base);
