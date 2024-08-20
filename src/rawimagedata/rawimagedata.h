@@ -14,9 +14,11 @@
 #include "rawimagedata_utils.h"
 #include "jpegimagedata.h"
 
+#define COPY_IF_SET(dest, src, field) if (src.field[0] != 0) strcpy(dest.field, src.field)
+#define ASSIGN_IF_SET(dest, src, field) if (src.field != 0) dest.field = src.field
 
 class RawImageData {
-  
+
 public:
   /* Public Variables */
 protected:
@@ -80,16 +82,11 @@ protected:
     double f_number = 0;
     double iso_sensitivity = 0;
 
-    lens_t lens_info;
-
     u_int image_count = 0;
     u_int shutter_count = 0;
 
     char artist[64] = { 0 };
     char copyright[64] = { 0 };
-    
-    time_t date_time = 0;
-    char date_time_str[20] = { 0 };
 
     off_t icc_profile_offset = 0;
     u_int icc_profile_count = 0;
@@ -99,6 +96,11 @@ protected:
     double gps_latitude = 0;
     char gps_longitude_reference = 0;
     double gps_longitude = 0;
+
+    time_t date_time = 0;
+    char date_time_str[20] = { 0 };
+
+    lens_t lens_info;
   };
 
   struct thumb_t {
@@ -135,15 +137,7 @@ protected:
 
     u_int ifd_count = 0;          // Total Number of IFD
     raw_data_ifd_t ifds[8];       // IFDs
-
-    img_frame_t main_frame;
-    raw_util_t main_util;
-    exif_t main_exif;
-
-    off_t data_offset = 0;
-    
-    off_t tile_offset = 0;
-    off_t meta_offset = 0;
+    raw_data_ifd_t main_ifd;      // Raw IFD
 
   } raw_data;
 
@@ -198,7 +192,7 @@ protected:
   void get_tag_header(off_t raw_data_base, u_int *tag_id, u_int *tag_type, u_int *tag_count, off_t *tag_offset);
   double get_tag_value(u_int tag_type);
 
-  void print_data(bool rawFileData, bool exifData, bool rawTiffIfds);
+  void print_data(bool rawFileData, bool rawTiffIfds);
 
 };
 
