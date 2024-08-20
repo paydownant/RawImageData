@@ -4,8 +4,12 @@
 NikonRaw :: NikonRaw(const std::string& filepath) : RawImageData(filepath) {}
 NikonRaw :: ~NikonRaw(){}
 
+
+bool NikonRaw :: load_raw_data() {
+  return false;
+}
+
 bool NikonRaw :: parse_makernote(u_int ifd, off_t raw_data_base, int uptag) {
-  
   char maker_magic[10];
   off_t base, offset;
   

@@ -11,14 +11,22 @@ RawImageData :: ~RawImageData() {}
 
 bool RawImageData :: load_raw() {
   raw_identify();
-  if (init_parse_raw(raw_data.base)) {
-    // apply raw frame (tiff)
-    apply_raw_data();
-    print_data(true, false);
+  if (!init_parse_raw(raw_data.base)) {
+    return false;
+  }
+  if (!apply_raw_data()) {
+    return false;
+  }
+
+  print_data(true, false);
+
+  if (!load_raw_data()) {
+    return false;
   }
 
   return true;
 }
+
 
 bool RawImageData :: raw_identify() {
   char raw_image_header[32];

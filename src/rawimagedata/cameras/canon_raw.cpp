@@ -1,11 +1,14 @@
-\
+
 #include "canon_raw.h"
 
 CanonRaw :: CanonRaw(const std::string& filepath) : RawImageData(filepath) {}
 CanonRaw :: ~CanonRaw(){}
 
+bool CanonRaw :: load_raw_data() {
+  return true;
+}
+
 bool CanonRaw :: parse_makernote(u_int ifd, off_t raw_data_base, int uptag) {
-  
   char maker_magic[10];
   off_t base, offset;
   

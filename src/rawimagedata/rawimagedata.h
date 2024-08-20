@@ -172,8 +172,8 @@ public:
 
 protected:
   /* Protected Functions */
+  virtual bool load_raw_data() = 0;
   bool raw_identify();
-
   bool apply_raw_data();
 
   bool init_parse_raw(off_t raw_data_base);
@@ -186,7 +186,6 @@ protected:
   bool parse_time_stamp(u_int ifd);
 
   virtual bool parse_makernote(u_int ifd, off_t raw_data_base, int uptag) = 0;
-  virtual void parse_markernote_tag(u_int ifd, off_t raw_data_base, int uptag) = 0;
 
   off_t get_tag_data_offset(off_t raw_data_base, u_int tag_type, u_int tag_count);
   void get_tag_header(off_t raw_data_base, u_int *tag_id, u_int *tag_type, u_int *tag_count, off_t *tag_offset);
