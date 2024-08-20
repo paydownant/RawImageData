@@ -111,7 +111,7 @@ protected:
   };
 
   struct raw_data_ifd_t {
-    bool set = false;
+    int _id = -1;
 
     u_int n_tag_entries = 0;
 

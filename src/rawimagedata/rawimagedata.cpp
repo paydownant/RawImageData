@@ -40,17 +40,11 @@ bool RawImageData :: raw_identify() {
 }
 
 bool RawImageData :: apply_raw_data() {
-
   u_int max_size = 0, cur_size = 0;
-
   /* Apply Main Raw IFD */
   for (u_int ifd = 0; ifd < raw_data.ifd_count; ++ifd) {
     printf("Apply IFD: %d |",ifd);
-    if (!raw_data.ifds[ifd].set) {
-      /* Skip unset ifd */
-      printf(" SKIP\n");
-      continue;
-    }
+    if (!raw_data.ifds[ifd]._id == -1) continue;  // Skip unset ifd
 
     cur_size = raw_data.ifds[ifd].frame.width * raw_data.ifds[ifd].frame.height * raw_data.ifds[ifd].frame.bps;
     if (cur_size > max_size && (raw_data.ifds[ifd].frame.bps != 6 || raw_data.ifds[ifd].frame.sample_pixel != 3)) {
@@ -62,16 +56,13 @@ bool RawImageData :: apply_raw_data() {
   }
   /* End of Main Raw IFD */
 
-  if (!raw_data.main_ifd.set) {
+  if (!raw_data.main_ifd._id == -1) {
     return false;
   }
 
   /* Apply Rest of the Data to Main Raw IFD */
   for (u_int ifd = 0; ifd < raw_data.ifd_count; ++ifd) {
-    if (!raw_data.ifds[ifd].set) {
-      /* Skip unset ifd */
-      continue;
-    }
+    if (!raw_data.ifds[ifd]._id == -1) continue;  // Skip unset ifd
 
     /* Orientation */
     ASSIGN_IF_SET(raw_data.main_ifd.frame, raw_data.ifds[ifd].frame, orientation);
@@ -112,8 +103,6 @@ bool RawImageData :: apply_raw_data() {
     /* APPLY OFFSETS */
     ASSIGN_IF_SET(raw_data.main_ifd, raw_data.ifds[ifd], meta_offset);
     ASSIGN_IF_SET(raw_data.main_ifd, raw_data.ifds[ifd], tile_offset);
-
-    printf("\n");
   }
   /* End of Remaining Data Setter */
 
@@ -128,7 +117,6 @@ bool RawImageData :: apply_raw_data() {
 }
 
 bool RawImageData :: parse_raw(off_t raw_data_base) {
-  
   raw_data.ifd_count = 0; // reset ifd count
   memset(raw_data.ifds, 0, sizeof(raw_data.ifds));  // reset ifds
   
@@ -141,7 +129,6 @@ bool RawImageData :: parse_raw(off_t raw_data_base) {
 }
 
 bool RawImageData :: parse_raw_data(off_t raw_data_base) {
-  
   file.seekg(raw_data_base, std::ios::beg); // go to the base
   
   u_int curr_bitorder, version;
@@ -156,7 +143,6 @@ bool RawImageData :: parse_raw_data(off_t raw_data_base) {
   }
 
   version = read_2_bytes_unsigned(file, raw_data.bitorder);
-
   while ((ifd_offset = read_4_bytes_unsigned(file, raw_data.bitorder))) {
     file.seekg(ifd_offset + raw_data_base, std::ios::beg);
     if (!parse_raw_data_ifd(raw_data_base)) {
@@ -176,14 +162,14 @@ bool RawImageData :: parse_raw_data_ifd(off_t raw_data_base) {
   raw_data.ifd_count++;
   ifd = raw_data.ifd_count;
 
-  if (raw_data.ifds[ifd].set) {
+  if (raw_data.ifds[ifd]._id == -1) {
     fprintf(stderr, "ERROR: Raw Image IFD Already SET\n");
     return false;
   }
 
   u_int n_tag_entries = read_2_bytes_unsigned(file, raw_data.bitorder);
   if (n_tag_entries != 0) {
-    raw_data.ifds[ifd].set = true;
+    raw_data.ifds[ifd]._id = ifd;
     raw_data.ifds[ifd].n_tag_entries = n_tag_entries;
   }
 
@@ -570,6 +556,7 @@ void RawImageData :: print_data(bool rawFileData, bool rawTiffIfds) {
   printf("Version: %d\n", raw_data.version);
   printf("File size: %.2lfMB\n", (float)raw_data.file_size / 1000000);
 
+  printf("IFD: %d\n", raw_data.main_ifd._id);
   printf("Width: %d\n", raw_data.main_ifd.frame.width);
   printf("Height: %d\n", raw_data.main_ifd.frame.height);
   printf("BPS: %d\n", raw_data.main_ifd.frame.bps);
@@ -579,6 +566,8 @@ void RawImageData :: print_data(bool rawFileData, bool rawTiffIfds) {
   printf("CFA Pattern: %d\n", raw_data.main_ifd.util.cfa);
   printf("Camera White Balance Multiplier (RGB): %lf %lf %lf\n", raw_data.main_ifd.util.white_balance_multi_cam.r, raw_data.main_ifd.util.white_balance_multi_cam.g, raw_data.main_ifd.util.white_balance_multi_cam.b);
   printf("Cblack (RGGB): %d %d %d %d\n", raw_data.main_ifd.util.cblack.r, raw_data.main_ifd.util.cblack.g_r, raw_data.main_ifd.util.cblack.g_b, raw_data.main_ifd.util.cblack.b);
+
+  printf("Raw Data Offset: %d\n", raw_data.main_ifd.data_offset);
 
   printf("\n================EXIF DATA===============\n");
   printf("Camera Make: %s\n", raw_data.main_ifd.exif.camera_make);
@@ -605,8 +594,8 @@ void RawImageData :: print_data(bool rawFileData, bool rawTiffIfds) {
   if (!rawTiffIfds) goto end;
   printf("\n================RAW TIFF IFDs===============\n");
   for (u_int i = 0; i < 8; ++i) {
-    if (raw_data.ifds[i].set) {
-      printf("IFD: %d\n", i + 1);
+    if (raw_data.ifds[i]._id != -1) {
+      printf("IFD: %d\n", raw_data.ifds[i]._id);
       printf("N Tag Entries: %d\n", raw_data.ifds[i].n_tag_entries);
       printf("Width: %d\n", raw_data.ifds[i].frame.width);
       printf("Height: %d\n", raw_data.ifds[i].frame.height);
