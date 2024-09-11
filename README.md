@@ -41,19 +41,11 @@ To use the Camera Raw File Parser, create an instance of the `RawImageData`'s ch
 #include <stdlib.h>
 
 #include "rawimagedata/cameras/nikon_raw.h"
-#include "rawimagedata/cameras/canon_raw.h"
 
 int main(int argc, char** argv) {
   RawImageData *img;
-  int index = 0;
 
-  if (index == 0) {
-    img = new NikonRaw("../sample_images/nikon/DSC_1551.NEF");
-  } else if (index == 1) {
-    img = new CanonRaw("../sample_images/canon/canon-eos-r.cr3");
-  } else {
-    /* Some other child classes*/
-  }
+  img = new NikonRaw("../sample_images/nikon/DSC_1551.NEF");
   
   if (img != nullptr) {
     img->load_raw();
